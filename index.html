@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SODmAX Pro | استخراج حرفه‌ای با پاداش USDT</title>
@@ -1060,37 +1061,40 @@
 </head>
 <body>
     <!-- صفحه ثبت نام -->
-    <div class="register-overlay" id="registerOverlay">
-        <div class="register-container">
-            <div class="register-header">
-                <div class="register-icon">⛏️</div>
-                <h1 class="register-title">ثبت نام در SODmAX</h1>
-                <p class="register-subtitle">برای شروع استخراج و دریافت پاداش USDT ثبت نام کنید</p>
-            </div>
+    <!-- صفحه ثبت نام/لاگین -->
+<div class="register-overlay" id="registerOverlay" style="display: flex;">
+    <div class="register-container">
+        <div class="register-header">
+            <div class="register-icon">⛏️</div>
+            <h1 class="register-title">ورود به SODmAX</h1>
+            <p class="register-subtitle">برای شروع استخراج و دریافت پاداش USDT وارد شوید</p>
+        </div>
 
-            <form id="registerForm">
-                <div class="form-group">
-                    <label class="form-label">نام و نام خانوادگی</label>
-                    <input type="text" class="form-input" placeholder="مثال: علی محمدی" id="fullName" required>
-                </div>
+        <div class="form-group">
+            <label class="form-label">ایمیل</label>
+            <input type="email" class="form-input" id="authEmail" placeholder="example@gmail.com" value="test@example.com">
+        </div>
 
-                <div class="form-group">
-                    <label class="form-label">ایمیل</label>
-                    <input type="email" class="form-input" placeholder="example@gmail.com" id="email" required>
-                </div>
+        <div class="form-group">
+            <label class="form-label">رمز عبور</label>
+            <input type="password" class="form-input" id="authPassword" placeholder="رمز عبور" value="123456">
+        </div>
 
-                <button type="submit" class="btn btn-primary">
-                    <i class="fas fa-user-plus"></i>
-                    ثبت نام و شروع استخراج
-                </button>
+        <button class="btn btn-primary" onclick="loginUser()" style="margin-bottom: 15px;">
+            <i class="fas fa-sign-in-alt"></i>
+            ورود به سیستم
+        </button>
 
-                <div style="text-align: center; margin-top: 20px; color: var(--text-secondary); font-size: 12px;">
-                    با ثبت نام، <a href="#" onclick="showTerms()" style="color: var(--primary-light);">قوانین و شرایط</a> را می‌پذیرید
-                </div>
-            </form>
+        <button class="btn btn-outline" onclick="registerUser()">
+            <i class="fas fa-user-plus"></i>
+            ثبت‌نام جدید
+        </button>
+
+        <div id="authMessage" style="text-align: center; margin-top: 20px; color: var(--text-secondary); font-size: 12px;">
+            برای تست: test@example.com / 123456
         </div>
     </div>
-
+</div>
     <!-- کانتینر اصلی -->
     <div class="container" id="mainContainer" style="display: none;">
         <!-- ناوبری -->
@@ -2131,8 +2135,286 @@
         console.log('💰 ۴ پنل ویژه فروش SOD اضافه شد');
         console.log('⛏️ سیستم ثبت نام و استخراج کامل');
         console.log('💎 نرخ تبدیل: 10,000,000 SOD = 0.01 USDT');
+
+        // ==================== سیستم Supabase ====================
+
+// تنظیمات Supabase (بعداً پر می‌کنید)
+const SUPABASE_URL = 'https://YOUR_PROJECT_ID.supabase.co';
+const SUPABASE_KEY = 'YOUR_ANON_KEY';
+
+// متغیرهای جهانی
+let supabaseClient = null;
+let currentUser = null;
+let gameData = null;
+
+// مقداردهی اولیه Supabase
+async function initSupabase() {
+    try {
+        supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        window.supabaseClient = supabaseClient;
+        
+        // چک کردن session موجود
+        const { data: { session } } = await supabaseClient.auth.getSession();
+        if (session) {
+            currentUser = session.user;
+            await loadUserData();
+            hideRegister();
+        }
+        
+        console.log('✅ Supabase initialized');
+    } catch (error) {
+        console.error('❌ خطا در راه‌اندازی Supabase:', error);
+    }
+}
+
+// لاگین کاربر
+async function loginUser() {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    
+    if (!email || !password) {
+        showNotification('خطا', 'لطفاً ایمیل و رمز عبور را وارد کنید');
+        return;
+    }
+    
+    try {
+        const { data, error } = await supabaseClient.auth.signInWithPassword({
+            email: email,
+            password: password
+        });
+        
+        if (error) throw error;
+        
+        currentUser = data.user;
+        showNotification('خوش آمدید', 'با موفقیت وارد شدید!');
+        await loadUserData();
+        hideRegister();
+        
+    } catch (error) {
+        console.error('خطا در لاگین:', error);
+        showNotification('خطا در ورود', error.message);
+    }
+}
+
+// ثبت‌نام کاربر
+async function registerUser() {
+    const email = document.getElementById('authEmail').value;
+    const password = document.getElementById('authPassword').value;
+    
+    if (!email || !password) {
+        showNotification('خطا', 'لطفاً ایمیل و رمز عبور را وارد کنید');
+        return;
+    }
+    
+    try {
+        const { data, error } = await supabaseClient.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    full_name: email.split('@')[0],
+                    register_date: new Date().toLocaleDateString('fa-IR')
+                }
+            }
+        });
+        
+        if (error) throw error;
+        
+        showNotification('ثبت‌نام موفق', 'حساب شما ایجاد شد! اکنون وارد شوید.');
+        
+    } catch (error) {
+        console.error('خطا در ثبت‌نام:', error);
+        showNotification('خطا در ثبت‌نام', error.message);
+    }
+}
+
+// بارگذاری داده‌های کاربر
+async function loadUserData() {
+    if (!currentUser) return;
+    
+    try {
+        // دریافت اطلاعات کاربر
+        const { data: userData, error: userError } = await supabaseClient
+            .from('users')
+            .select('*')
+            .eq('email', currentUser.email)
+            .single();
+        
+        // اگر کاربر وجود نداشت، ایجاد کن
+        if (userError || !userData) {
+            await createNewUser();
+            await loadUserData();
+            return;
+        }
+        
+        // دریافت اطلاعات بازی
+        const { data: gameDataResult, error: gameError } = await supabaseClient
+            .from('game_data')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .single();
+        
+        if (gameError || !gameDataResult) {
+            await createGameData();
+            await loadUserData();
+            return;
+        }
+        
+        gameData = gameDataResult;
+        updateUI();
+        
+    } catch (error) {
+        console.error('خطا در بارگذاری داده‌ها:', error);
+    }
+}
+
+// ایجاد کاربر جدید
+async function createNewUser() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('users')
+            .insert([{
+                id: currentUser.id,
+                email: currentUser.email,
+                full_name: currentUser.email.split('@')[0],
+                register_date: new Date().toLocaleDateString('fa-IR'),
+                invite_code: 'INV-' + Math.random().toString(36).substr(2, 8).toUpperCase()
+            }]);
+        
+        if (error) throw error;
+        
+        console.log('✅ کاربر جدید ایجاد شد');
+        
+    } catch (error) {
+        console.error('خطا در ایجاد کاربر:', error);
+    }
+}
+
+// ایجاد داده‌های بازی
+async function createGameData() {
+    try {
+        const { data, error } = await supabaseClient
+            .from('game_data')
+            .insert([{
+                user_id: currentUser.id,
+                sod_balance: 1000000,
+                usdt_balance: 0,
+                user_level: 1,
+                total_mined: 1000000,
+                today_earnings: 0,
+                mining_power: 10,
+                usdt_progress: 0
+            }]);
+        
+        if (error) throw error;
+        
+        console.log('✅ داده‌های بازی ایجاد شد');
+        
+    } catch (error) {
+        console.error('خطا در ایجاد داده‌های بازی:', error);
+    }
+}
+
+// آپدیت UI
+function updateUI() {
+    if (!gameData) return;
+    
+    // آپدیت موجودی‌ها
+    document.getElementById('sodBalance').innerHTML = formatNumber(gameData.sod_balance) + ' <span>SOD</span>';
+    document.getElementById('usdtBalance').innerHTML = gameData.usdt_balance.toFixed(4) + ' <span>USDT</span>';
+    
+    // آپدیت آمار
+    document.getElementById('todayEarnings').textContent = formatNumber(gameData.today_earnings) + ' SOD';
+    document.getElementById('miningPower').textContent = gameData.mining_power + 'x';
+    document.getElementById('clickReward').textContent = '+' + gameData.mining_power + ' SOD';
+    document.getElementById('userLevel').textContent = gameData.user_level;
+    
+    // آپدیت progress bar
+    const progressPercent = (gameData.usdt_progress / 10000000) * 100;
+    document.getElementById('progressFill').style.width = progressPercent + '%';
+    document.getElementById('progressText').textContent = formatNumber(gameData.usdt_progress) + ' / ۱۰,۰۰۰,۰۰۰ SOD';
+}
+
+// تابع استخراج (آپدیت شده)
+async function mineSOD() {
+    if (!currentUser || !gameData) return;
+    
+    const earned = gameData.mining_power;
+    
+    // آپدیت محلی
+    gameData.sod_balance += earned;
+    gameData.total_mined += earned;
+    gameData.today_earnings += earned;
+    gameData.usdt_progress += earned;
+    
+    // آپدیت در دیتابیس
+    try {
+        const { error } = await supabaseClient
+            .from('game_data')
+            .update({
+                sod_balance: gameData.sod_balance,
+                total_mined: gameData.total_mined,
+                today_earnings: gameData.today_earnings,
+                usdt_progress: gameData.usdt_progress,
+                last_active: new Date().toISOString()
+            })
+            .eq('user_id', currentUser.id);
+        
+        if (error) throw error;
+        
+        updateUI();
+        checkUSDT();
+        createMiningEffect(earned);
+        
+    } catch (error) {
+        console.error('خطا در ذخیره استخراج:', error);
+    }
+}
+
+// بررسی پاداش USDT
+async function checkUSDT() {
+    if (gameData.usdt_progress >= 10000000) {
+        const usdtEarned = 0.01;
+        
+        gameData.usdt_balance += usdtEarned;
+        gameData.usdt_progress -= 10000000;
+        
+        // آپدیت در دیتابیس
+        try {
+            const { error } = await supabaseClient
+                .from('game_data')
+                .update({
+                    usdt_balance: gameData.usdt_balance,
+                    usdt_progress: gameData.usdt_progress
+                })
+                .eq('user_id', currentUser.id);
+            
+            if (error) throw error;
+            
+            showNotification('🎉 پاداش USDT', usdtEarned.toFixed(4) + ' USDT دریافت کردید!');
+            
+        } catch (error) {
+            console.error('خطا در ذخیره USDT:', error);
+        }
+    }
+}
+
+// راه‌اندازی
+document.addEventListener('DOMContentLoaded', function() {
+    // اول سیستم اصلی خودتان راه‌اندازی شود
+    // سپس Supabase را init کنید
+    
+    // این خط را به تابع init() اصلی خودتان اضافه کنید:
+    // initSupabase();
+    
+    // یا مستقیماً اینجا صدا بزنید:
+    setTimeout(initSupabase, 1000);
+});
     </script>
     <script src="data-manager.js"></script>
+    <script src="supabase.js"></script>
+<script src="app.js"></script>
 </body>
 </html>
+
 
