@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+   <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SODmAX Pro | استخراج حرفه‌ای با پاداش USDT</title>
@@ -1060,14 +1060,13 @@
     </style>
 </head>
 <body>
-    <!-- صفحه ثبت نام -->
-    <!-- صفحه ثبت نام/لاگین -->
-<div class="register-overlay" id="registerOverlay" style="display: flex;">
+    <!-- صفحه ثبت‌نام/لاگین -->
+<div class="register-overlay" id="registerOverlay">
     <div class="register-container">
         <div class="register-header">
             <div class="register-icon">⛏️</div>
-            <h1 class="register-title">ورود به SODmAX</h1>
-            <p class="register-subtitle">برای شروع استخراج و دریافت پاداش USDT وارد شوید</p>
+            <h1 class="register-title">ورود به SODmAX Pro</h1>
+            <p class="register-subtitle">استخراج هوشمند با پاداش واقعی USDT</p>
         </div>
 
         <div class="form-group">
@@ -1090,9 +1089,17 @@
             ثبت‌نام جدید
         </button>
 
-        <div id="authMessage" style="text-align: center; margin-top: 20px; color: var(--text-secondary); font-size: 12px;">
-            برای تست: test@example.com / 123456
+        <div style="text-align: center; margin-top: 25px; padding: 15px; background: rgba(255,255,255,0.05); border-radius: 10px;">
+            <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 10px;">
+                برای تست سریع:
+            </div>
+            <div style="font-family: monospace; font-size: 13px; color: var(--primary-light);">
+                ایمیل: test@example.com<br>
+                رمز: 123456
+            </div>
         </div>
+
+        <div id="authMessage" style="text-align: center; margin-top: 20px; color: var(--text-secondary); font-size: 12px; display: none;"></div>
     </div>
 </div>
     <!-- کانتینر اصلی -->
@@ -2413,9 +2420,10 @@ document.addEventListener('DOMContentLoaded', function() {
     </script>
     <script src="data-manager.js"></script>
 <script src="supabase-config.js"></script>
-<script src="app.js"></script>
+<script src="app-core.js"></script>
 </body>
 </html>
+
 
 
 
