@@ -306,6 +306,44 @@
             margin-top: 4px;
         }
 
+        /* منوی navigation */
+        .nav-menu {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-right: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            padding: 0 8px;
+        }
+
+        .nav-menu a {
+            color: white;
+            text-decoration: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            transition: all 0.3s ease;
+        }
+
+        .nav-menu a:nth-child(1) { background: rgba(0,102,255,0.3); }
+        .nav-menu a:nth-child(2) { background: rgba(255,107,53,0.3); }
+        .nav-menu a:nth-child(3) { background: rgba(0,212,170,0.3); }
+        .nav-menu a:nth-child(4) { background: rgba(148,163,184,0.3); }
+
+        .nav-menu a:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+        }
+
+        .nav-text {
+            display: inline;
+        }
+
         .wallet-section {
             display: flex;
             flex-direction: column;
@@ -935,6 +973,11 @@
                 padding: 20px 0;
             }
             
+            .nav-menu {
+                flex-direction: row;
+                margin-right: 0;
+            }
+            
             .wallet-section {
                 flex-direction: row;
                 width: auto;
@@ -981,6 +1024,19 @@
             
             .reward-card {
                 flex-direction: row;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .nav-text {
+                display: none;
+            }
+            .nav-menu {
+                gap: 5px;
+            }
+            .nav-menu a {
+                padding: 5px 8px;
+                font-size: 11px;
             }
         }
 
@@ -1048,6 +1104,27 @@
                     <div class="logo-subtitle">استخراج هوشمند • پاداش واقعی</div>
                 </div>
             </a>
+
+            <!-- منوی navigation -->
+            <div class="nav-menu">
+                <a href="dashboard.html">
+                    <i class="fas fa-chart-line"></i>
+                    <span class="nav-text">داشبورد</span>
+                </a>
+                <a href="leaderboard.html">
+                    <i class="fas fa-trophy"></i>
+                    <span class="nav-text">لیدربرد</span>
+                </a>
+                <a href="missions.html">
+                    <i class="fas fa-tasks"></i>
+                    <span class="nav-text">مأموریت‌ها</span>
+                </a>
+                <!-- لینک مدیریت - فقط برای ادمین نمایش داده می‌شود -->
+                <a href="admin.html" id="adminLink" style="display: none; background: rgba(148,163,184,0.3);">
+                    <i class="fas fa-user-shield"></i>
+                    <span class="nav-text">مدیریت</span>
+                </a>
+            </div>
 
             <div class="wallet-section">
                 <div class="wallet-row">
@@ -1283,7 +1360,9 @@
             transactions: [],
             boostActive: false,
             boostEndTime: 0,
-            lastClaimTime: null
+            lastClaimTime: null,
+            totalMined: 0,
+            registerDate: new Date().toLocaleDateString('fa-IR')
         };
 
         // داده‌های کاربر
@@ -1364,11 +1443,117 @@
             }
         ];
 
+        // ==================== سیستم ذخیره‌سازی یکپارچه ====================
+        
+        // سیستم ذخیره‌سازی یکپارچه برای پنل مدیریت
+        function saveGameDataForAdmin() {
+            if (!userData || !userData.email) return;
+            
+            // ذخیره اطلاعات کاربر
+            const userDataForAdmin = {
+                fullName: userData.fullName,
+                email: userData.email,
+                registerDate: gameData.registerDate || new Date().toLocaleDateString('fa-IR')
+            };
+            
+            // ذخیره اطلاعات بازی
+            const gameDataForAdmin = {
+                sodBalance: gameData.sodBalance || 0,
+                usdtBalance: gameData.usdtBalance || 0,
+                userLevel: gameData.userLevel || 1,
+                totalMined: gameData.totalMined || 0,
+                todayEarnings: gameData.todayEarnings || 0,
+                miningPower: gameData.miningPower || 10
+            };
+            
+            // ذخیره با ساختار جدید (برای پنل مدیریت)
+            localStorage.setItem('sodmaxUser_' + userData.email, JSON.stringify(userDataForAdmin));
+            localStorage.setItem('sodmaxGame_' + userData.email, JSON.stringify(gameDataForAdmin));
+            
+            // همچنین در ساختار قدیمی هم ذخیره کنید (برای سازگاری)
+            localStorage.setItem('sodmaxUserData', JSON.stringify(userDataForAdmin));
+            localStorage.setItem('sodmaxGameData', JSON.stringify(gameDataForAdmin));
+            
+            console.log('✅ داده‌ها برای پنل مدیریت ذخیره شدند:', userData.email);
+            return true;
+        }
+
+        // آپدیت لیست کاربران فعال
+        function updateActiveUsers() {
+            try {
+                let activeUsers = JSON.parse(localStorage.getItem('sodmaxActiveUsers') || '[]');
+                
+                const userIndex = activeUsers.findIndex(u => u.email === userData.email);
+                const userInfo = {
+                    email: userData.email,
+                    name: userData.fullName,
+                    level: gameData.userLevel || 1,
+                    sod: gameData.sodBalance || 0,
+                    usdt: gameData.usdtBalance || 0,
+                    totalMined: gameData.totalMined || 0,
+                    lastActive: new Date().toISOString(),
+                    registerDate: gameData.registerDate || new Date().toLocaleDateString('fa-IR')
+                };
+                
+                if (userIndex === -1) {
+                    activeUsers.push(userInfo);
+                } else {
+                    activeUsers[userIndex] = userInfo;
+                }
+                
+                localStorage.setItem('sodmaxActiveUsers', JSON.stringify(activeUsers));
+                
+            } catch (e) {
+                console.log('⚠️ خطا در آپدیت کاربران فعال:', e);
+            }
+        }
+
+        // ذخیره بازی پیشرفته
+        function saveGameAdvanced() {
+            try {
+                if (!userData || !userData.email) return;
+                
+                // ذخیره یکپارچه برای پنل مدیریت
+                saveGameDataForAdmin();
+                
+                // آپدیت لیست کاربران فعال
+                updateActiveUsers();
+                
+            } catch (e) {
+                console.log('⚠️ خطا در ذخیره پیشرفته:', e);
+            }
+        }
+
+        // سینک خودکار بین ساختار قدیم و جدید
+        function syncDataStructures() {
+            try {
+                const oldUserData = JSON.parse(localStorage.getItem('sodmaxUserData') || '{}');
+                if (oldUserData.email) {
+                    // اگر ساختار قدیم وجود دارد و ساختار جدید ندارد
+                    const newKey = 'sodmaxUser_' + oldUserData.email;
+                    if (!localStorage.getItem(newKey)) {
+                        localStorage.setItem(newKey, JSON.stringify(oldUserData));
+                        
+                        // همچنین اطلاعات بازی را هم سینک کن
+                        const oldGameData = JSON.parse(localStorage.getItem('sodmaxGameData') || '{}');
+                        localStorage.setItem('sodmaxGame_' + oldUserData.email, JSON.stringify(oldGameData));
+                        
+                        console.log('🔄 داده‌ها از ساختار قدیم به جدید سینک شدند');
+                    }
+                }
+            } catch (e) {
+                console.log('⚠️ خطا در سینک داده‌ها:', e);
+            }
+        }
+
+        // ==================== تابع‌های اصلی ====================
+
         // راه‌اندازی
         function init() {
             checkRegistration();
             setupEventListeners();
             renderSODSalePlans();
+            syncDataStructures();
             
             if (!userData.isRegistered) {
                 showRegister();
@@ -1429,10 +1614,15 @@
             // مقدار اولیه بازی
             gameData.sodBalance = 1000000; // 1 میلیون SOD هدیه ثبت نام
             gameData.usdtProgress = 1000000;
+            gameData.totalMined = 1000000;
+            gameData.registerDate = new Date().toLocaleDateString('fa-IR');
             
             // ذخیره در localStorage
             localStorage.setItem('sodmaxUserData', JSON.stringify(userData));
             localStorage.setItem('sodmaxGameData', JSON.stringify(gameData));
+            
+            // ذخیره پیشرفته برای پنل مدیریت
+            saveGameAdvanced();
             
             showNotification('ثبت نام موفق', 'خوش آمدید ' + fullName + '! هدیه ۱ میلیون SOD دریافت کردید.');
             
@@ -1498,6 +1688,7 @@
                     // در نسخه واقعی اینجا باید پرداخت انجام شود
                     // فعلاً فقط اضافه می‌کنیم
                     gameData.sodBalance += totalSOD;
+                    gameData.totalMined += totalSOD;
                     
                     showNotification(
                         '🎉 خرید موفق', 
@@ -1532,6 +1723,9 @@
             setTimeout(() => {
                 showNotification('🌟 خوش آمدید', 'سیستم استخراج آماده است! کلیک کنید و SOD استخراج کنید.');
             }, 500);
+            
+            // بررسی دسترسی ادمین
+            setTimeout(checkAdminAccess, 2000);
         }
 
         // کلیک برای استخراج
@@ -1544,6 +1738,7 @@
             
             gameData.sodBalance += earned;
             gameData.todayEarnings += earned;
+            gameData.totalMined += earned;
             gameData.usdtProgress += earned;
             
             // افکت
@@ -1604,6 +1799,7 @@
                 
                 gameData.sodBalance += earned;
                 gameData.todayEarnings += earned;
+                gameData.totalMined += earned;
                 gameData.usdtProgress += earned;
                 
                 checkUSDT();
@@ -1882,6 +2078,8 @@
         function saveGame() {
             try {
                 localStorage.setItem('sodmaxGameData', JSON.stringify(gameData));
+                // ذخیره پیشرفته برای پنل مدیریت
+                saveGameAdvanced();
             } catch (e) {
                 console.log('خطا در ذخیره:', e);
             }
@@ -1895,7 +2093,38 @@
             setInterval(saveGame, 30000);
         }
 
-        // راه‌اندازی
+        // ==================== سیستم مدیریت ادمین ====================
+
+        // تشخیص ادمین و نمایش لینک مدیریت
+        function checkAdminAccess() {
+            try {
+                const userData = JSON.parse(localStorage.getItem('sodmaxUserData') || '{}');
+                const adminEmails = ["hamyarhf@gmail.com"];
+                
+                if (userData.email && adminEmails.includes(userData.email)) {
+                    document.getElementById('adminLink').style.display = 'flex';
+                    console.log('✅ دسترسی ادمین فعال شد');
+                }
+            } catch (e) {
+                console.log('⚠️ خطا در تشخیص ادمین:', e);
+            }
+        }
+
+        // ==================== راه‌اندازی ====================
+
+        // راه‌اندازی سیستم مدیریت
+        setTimeout(checkAdminAccess, 2000);
+
+        // بروزرسانی هر 5 دقیقه
+        setInterval(() => {
+            if (userData && userData.email) {
+                updateActiveUsers();
+            }
+        }, 300000);
+
+        console.log('🚀 سیستم مدیریت SODmAX بارگذاری شد');
+
+        // راه‌اندازی بازی
         window.addEventListener('DOMContentLoaded', init);
 
         console.log('🛒 SODmAX Pro با پنل‌های فروش SOD آماده است!');
@@ -1903,6 +2132,7 @@
         console.log('⛏️ سیستم ثبت نام و استخراج کامل');
         console.log('💎 نرخ تبدیل: 10,000,000 SOD = 0.01 USDT');
     </script>
+    <script src="data-manager.js"></script>
 </body>
-
 </html>
+
