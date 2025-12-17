@@ -307,18 +307,6 @@
             }
         }
 
-        /* انیمیشن استخراج */
-        @keyframes floatUp {
-            0% {
-                opacity: 1;
-                transform: translate(0, 0) scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: translate(0, -100px) scale(1.2);
-            }
-        }
-
         /* رزپانسیو */
         @media (max-width: 768px) {
             .header {
@@ -476,17 +464,11 @@
     <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script>
         // ==================== تنظیمات ====================
-        const SUPABASE_URL = 'https://utnqkgbmdjilvbkwjqef.supabase.co';
-        const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0bnFrZ2JtZGppbHZia3dqcWVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MDM3ODUsImV4cCI6MjA4MTQ3OTc4NX0.-PA0KAaSuQ-ZAJZLdVNe-AafE5fHf8CA5R4uR3TKGDc';
-        
         const EXCHANGE_RATE = 1000000; // 1M SOD = 0.01 USDT
         const ADMIN_EMAIL = 'hamyarhf@gmail.com';
         
         // ==================== متغیرهای سراسری ====================
-        let supabaseClient = null;
-        let currentUser = null;
-        let userInfo = null;
-        let gameData = null;
+        let gameInstance = null;
         
         // ==================== توابع UI ====================
         
@@ -526,33 +508,6 @@
             document.getElementById('mainContainer').style.display = 'none';
         }
         
-        // ==================== راه‌اندازی Supabase ====================
-        
-        function initSupabase() {
-            console.log('🔄 شروع بارگذاری Supabase...');
-            
-            try {
-                // بررسی آیا کتابخانه supabase بارگذاری شده
-                if (typeof supabase === 'undefined') {
-                    console.error('❌ کتابخانه Supabase بارگذاری نشده');
-                    showNotification('خطا', 'کتابخانه Supabase بارگذاری نشده', 'error');
-                    return false;
-                }
-                
-                // ایجاد Supabase Client
-                supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-                window.supabaseClient = supabaseClient;
-                
-                console.log('✅ Supabase Client ایجاد شد');
-                return true;
-                
-            } catch (error) {
-                console.error('❌ خطا در راه‌اندازی Supabase:', error);
-                showNotification('خطا', 'مشکلی در راه‌اندازی Supabase پیش آمد', 'error');
-                return false;
-            }
-        }
-        
         // ==================== توابع احراز هویت ====================
         
         async function loginUser() {
@@ -567,11 +522,11 @@
             try {
                 showNotification('در حال ورود...', 'لطفاً صبر کنید', 'info');
                 
-                if (!supabaseClient) {
+                if (!window.supabaseClient) {
                     throw new Error('Supabase بارگذاری نشده است');
                 }
                 
-                const { data, error } = await supabaseClient.auth.signInWithPassword({
+                const { data, error } = await window.supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
                 });
@@ -609,11 +564,7 @@
             try {
                 showNotification('در حال ثبت‌نام...', 'لطفاً صبر کنید', 'info');
                 
-                if (!supabaseClient) {
-                    throw new Error('Supabase بارگذاری نشده است');
-                }
-                
-                const { data, error } = await supabaseClient.auth.signUp({
+                const { data, error } = await window.supabaseClient.auth.signUp({
                     email: email,
                     password: password,
                     options: {
@@ -636,10 +587,7 @@
         
         async function logoutUser() {
             try {
-                await supabaseClient.auth.signOut();
-                currentUser = null;
-                userInfo = null;
-                gameData = null;
+                await window.supabaseClient.auth.signOut();
                 showNotification('خروج', 'با موفقیت خارج شدید.');
                 showAuthPage();
             } catch (error) {
@@ -647,16 +595,16 @@
             }
         }
         
-        // ==================== راه‌اندازی بازی ====================
+        // ==================== راه‌اندازی ====================
         
         async function initGame() {
             try {
                 // بررسی session فعلی
-                const { data: { session } } = await supabaseClient.auth.getSession();
+                const { data: { session } } = await window.supabaseClient.auth.getSession();
                 
                 if (session) {
                     showMainPage();
-                    await loadUserData(session.user);
+                    loadUserData(session.user);
                 } else {
                     showAuthPage();
                 }
@@ -666,6 +614,56 @@
             }
         }
         
+        // ==================== راه‌اندازی Supabase ====================
+        
+        function initSupabase() {
+            const SUPABASE_URL = 'https://utnqkgbmdjilvbkwjqef.supabase.co';
+            const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0bnFrZ2JtZGppbHZia3dqcWVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUyMzIwMDksImV4cCI6MjA1MDgwODAwOX0.E0rR6NfU4C_v6DSLPdPieC4uQQa6K4T0w8Jj3K0Y6eE';
+            
+            try {
+                if (typeof supabase === 'undefined') {
+                    console.error('❌ کتابخانه Supabase بارگذاری نشده');
+                    showNotification('خطا', 'کتابخانه Supabase بارگذاری نشده', 'error');
+                    return false;
+                }
+                
+                window.supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+                console.log('✅ Supabase Client ایجاد شد');
+                return true;
+                
+            } catch (error) {
+                console.error('❌ خطا در ایجاد Supabase Client:', error);
+                showNotification('خطا', 'مشکلی در راه‌اندازی Supabase پیش آمد', 'error');
+                return false;
+            }
+        }
+        
+        // ==================== بارگذاری اولیه ====================
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('🚀 صفحه بارگذاری شد');
+            
+            // تنظیم کلیک ماینر
+            document.getElementById('minerCore').addEventListener('click', function() {
+                mineSOD();
+            });
+            
+            // بارگذاری Supabase
+            const supabaseLoaded = initSupabase();
+            
+            if (supabaseLoaded) {
+                // بررسی auto-login
+                setTimeout(() => {
+                    initGame();
+                }, 1000);
+            } else {
+                showNotification('⚠️ هشدار', 'حالت آفلاین فعال شد', 'warning');
+                showAuthPage();
+            }
+        });
+    </script>
+
+    <script>
         // ==================== تابع‌های بازی ====================
         
         async function loadUserData(user) {
@@ -673,16 +671,16 @@
                 console.log('بارگذاری اطلاعات کاربر:', user.email);
                 
                 // دریافت یا ایجاد کاربر در دیتابیس
-                const { data: userData, error: userError } = await supabaseClient
+                const { data: userData, error: userError } = await window.supabaseClient
                     .from('users')
                     .select('*')
                     .eq('id', user.id)
                     .single();
                 
-                let userInfoTemp;
+                let userInfo;
                 if (userError || !userData) {
                     // ایجاد کاربر جدید
-                    userInfoTemp = {
+                    userInfo = {
                         id: user.id,
                         email: user.email,
                         full_name: user.user_metadata?.full_name || user.email.split('@')[0],
@@ -691,28 +689,28 @@
                         is_admin: user.email.toLowerCase() === ADMIN_EMAIL
                     };
                     
-                    const { error } = await supabaseClient
+                    const { error } = await window.supabaseClient
                         .from('users')
-                        .insert([userInfoTemp]);
+                        .insert([userInfo]);
                     
                     if (error) throw error;
                 } else {
-                    userInfoTemp = userData;
+                    userInfo = userData;
                 }
                 
                 // دریافت یا ایجاد اطلاعات بازی
-                const { data: gameDataTemp, error: gameError } = await supabaseClient
+                const { data: gameData, error: gameError } = await window.supabaseClient
                     .from('game_data')
                     .select('*')
                     .eq('user_id', user.id)
                     .single();
                 
                 let userGameData;
-                if (gameError || !gameDataTemp) {
+                if (gameError || !gameData) {
                     // ایجاد اطلاعات بازی جدید
                     userGameData = {
                         user_id: user.id,
-                        sod_balance: 1000000,
+                        sod_balance: 1000000, // هدیه ثبت نام
                         usdt_balance: 0,
                         user_level: 1,
                         total_mined: 1000000,
@@ -724,14 +722,14 @@
                         last_active: new Date().toISOString()
                     };
                     
-                    const { error } = await supabaseClient
+                    const { error } = await window.supabaseClient
                         .from('game_data')
                         .insert([userGameData]);
                     
                     if (error) throw error;
                     
                     // ثبت تراکنش هدیه
-                    await supabaseClient
+                    await window.supabaseClient
                         .from('transactions')
                         .insert([{
                             user_id: user.id,
@@ -744,19 +742,19 @@
                     showNotification('🎁 هدیه ثبت نام', '۱,۰۰۰,۰۰۰ SOD دریافت کردید!');
                     
                 } else {
-                    userGameData = gameDataTemp;
+                    userGameData = gameData;
                     
                     // بروزرسانی last_active
-                    await supabaseClient
+                    await window.supabaseClient
                         .from('game_data')
                         .update({ last_active: new Date().toISOString() })
                         .eq('user_id', user.id);
                 }
                 
                 // ذخیره در متغیرهای جهانی
-                currentUser = user;
-                userInfo = userInfoTemp;
-                gameData = userGameData;
+                window.currentUser = user;
+                window.userInfo = userInfo;
+                window.gameData = userGameData;
                 
                 // آپدیت UI
                 updateUI();
@@ -775,41 +773,41 @@
         }
         
         async function mineSOD() {
-            if (!currentUser || !gameData) {
+            if (!window.currentUser || !window.gameData) {
                 showNotification('خطا', 'لطفاً ابتدا وارد شوید', 'error');
                 return;
             }
             
             try {
-                const baseEarned = gameData.mining_power || 10;
-                const boostMultiplier = gameData.boost_active ? 3 : 1;
+                const baseEarned = window.gameData.mining_power || 10;
+                const boostMultiplier = window.gameData.boost_active ? 3 : 1;
                 const totalEarned = baseEarned * boostMultiplier;
                 
                 console.log('استخراج:', totalEarned, 'SOD');
                 
                 // بروزرسانی محلی
-                gameData.sod_balance += totalEarned;
-                gameData.total_mined += totalEarned;
-                gameData.today_earnings += totalEarned;
-                gameData.usdt_progress += totalEarned;
+                window.gameData.sod_balance += totalEarned;
+                window.gameData.total_mined += totalEarned;
+                window.gameData.today_earnings += totalEarned;
+                window.gameData.usdt_progress += totalEarned;
                 
                 // بروزرسانی در دیتابیس
-                await supabaseClient
+                await window.supabaseClient
                     .from('game_data')
                     .update({
-                        sod_balance: gameData.sod_balance,
-                        total_mined: gameData.total_mined,
-                        today_earnings: gameData.today_earnings,
-                        usdt_progress: gameData.usdt_progress,
+                        sod_balance: window.gameData.sod_balance,
+                        total_mined: window.gameData.total_mined,
+                        today_earnings: window.gameData.today_earnings,
+                        usdt_progress: window.gameData.usdt_progress,
                         last_active: new Date().toISOString()
                     })
-                    .eq('user_id', currentUser.id);
+                    .eq('user_id', window.currentUser.id);
                 
                 // ثبت تراکنش
-                await supabaseClient
+                await window.supabaseClient
                     .from('transactions')
                     .insert([{
-                        user_id: currentUser.id,
+                        user_id: window.currentUser.id,
                         description: 'استخراج دستی',
                         amount: totalEarned,
                         type: 'sod',
@@ -832,33 +830,33 @@
         }
         
         async function checkUSDT() {
-            if (!gameData || (gameData.usdt_progress || 0) < EXCHANGE_RATE) {
+            if (!window.gameData || (window.gameData.usdt_progress || 0) < EXCHANGE_RATE) {
                 return;
             }
             
             try {
-                const cycles = Math.floor((gameData.usdt_progress || 0) / EXCHANGE_RATE);
-                const usdtEarned = cycles * 0.01;
+                const cycles = Math.floor((window.gameData.usdt_progress || 0) / EXCHANGE_RATE);
+                const usdtEarned = cycles * 0.01; // 0.01 USDT per 1M SOD
                 
                 console.log('پاداش USDT:', usdtEarned, 'از', cycles, 'چرخه');
                 
-                gameData.usdt_balance += usdtEarned;
-                gameData.usdt_progress %= EXCHANGE_RATE;
+                window.gameData.usdt_balance += usdtEarned;
+                window.gameData.usdt_progress %= EXCHANGE_RATE;
                 
                 // بروزرسانی در دیتابیس
-                await supabaseClient
+                await window.supabaseClient
                     .from('game_data')
                     .update({
-                        usdt_balance: gameData.usdt_balance,
-                        usdt_progress: gameData.usdt_progress
+                        usdt_balance: window.gameData.usdt_balance,
+                        usdt_progress: window.gameData.usdt_progress
                     })
-                    .eq('user_id', currentUser.id);
+                    .eq('user_id', window.currentUser.id);
                 
                 // ثبت تراکنش USDT
-                await supabaseClient
+                await window.supabaseClient
                     .from('transactions')
                     .insert([{
-                        user_id: currentUser.id,
+                        user_id: window.currentUser.id,
                         description: 'دریافت پاداش USDT',
                         amount: usdtEarned,
                         type: 'usdt',
@@ -868,19 +866,19 @@
                 showNotification('🎉 پاداش USDT', `${usdtEarned.toFixed(4)} USDT دریافت کردید!`);
                 
                 // شانس ارتقاء سطح
-                if (Math.random() < 0.15) {
-                    gameData.user_level += 1;
-                    gameData.mining_power = 10 * gameData.user_level;
+                if (Math.random() < 0.15) { // 15% chance
+                    window.gameData.user_level += 1;
+                    window.gameData.mining_power = 10 * window.gameData.user_level;
                     
-                    await supabaseClient
+                    await window.supabaseClient
                         .from('game_data')
                         .update({
-                            user_level: gameData.user_level,
-                            mining_power: gameData.mining_power
+                            user_level: window.gameData.user_level,
+                            mining_power: window.gameData.mining_power
                         })
-                        .eq('user_id', currentUser.id);
+                        .eq('user_id', window.currentUser.id);
                     
-                    showNotification('⭐ ارتقاء سطح', `سطح شما به ${gameData.user_level} ارتقاء یافت!`);
+                    showNotification('⭐ ارتقاء سطح', `سطح شما به ${window.gameData.user_level} ارتقاء یافت!`);
                 }
                 
                 updateUI();
@@ -891,20 +889,20 @@
         }
         
         async function claimUSDT() {
-            if (!currentUser || !gameData) {
+            if (!window.currentUser || !window.gameData) {
                 showNotification('خطا', 'لطفاً ابتدا وارد شوید', 'error');
                 return;
             }
             
-            if (!gameData.usdt_balance || gameData.usdt_balance <= 0) {
+            if (!window.gameData.usdt_balance || window.gameData.usdt_balance <= 0) {
                 showNotification('اطلاع', 'هنوز USDT پاداش دریافت نکرده‌اید.', 'info');
                 return;
             }
             
-            const usdtToClaim = gameData.usdt_balance;
-            const sodNeeded = Math.floor(usdtToClaim * (EXCHANGE_RATE * 100));
+            const usdtToClaim = window.gameData.usdt_balance;
+            const sodNeeded = Math.floor(usdtToClaim * (EXCHANGE_RATE * 100)); // 1M SOD = 0.01 USDT
             
-            if (gameData.sod_balance < sodNeeded) {
+            if (window.gameData.sod_balance < sodNeeded) {
                 showNotification('⚠️ موجودی ناکافی', 
                     `برای دریافت ${usdtToClaim.toFixed(4)} USDT به ${formatNumber(sodNeeded)} SOD نیاز دارید.`,
                     'warning');
@@ -916,31 +914,31 @@
             }
             
             try {
-                gameData.usdt_balance = 0;
-                gameData.sod_balance -= sodNeeded;
+                window.gameData.usdt_balance = 0;
+                window.gameData.sod_balance -= sodNeeded;
                 
                 // بروزرسانی در دیتابیس
-                await supabaseClient
+                await window.supabaseClient
                     .from('game_data')
                     .update({
-                        usdt_balance: gameData.usdt_balance,
-                        sod_balance: gameData.sod_balance
+                        usdt_balance: window.gameData.usdt_balance,
+                        sod_balance: window.gameData.sod_balance
                     })
-                    .eq('user_id', currentUser.id);
+                    .eq('user_id', window.currentUser.id);
                 
                 // ثبت تراکنش‌ها
-                await supabaseClient
+                await window.supabaseClient
                     .from('transactions')
                     .insert([
                         {
-                            user_id: currentUser.id,
+                            user_id: window.currentUser.id,
                             description: 'دریافت پاداش USDT',
                             amount: -usdtToClaim,
                             type: 'usdt',
                             created_at: new Date().toISOString()
                         },
                         {
-                            user_id: currentUser.id,
+                            user_id: window.currentUser.id,
                             description: 'تبدیل SOD به USDT',
                             amount: -sodNeeded,
                             type: 'sod',
@@ -958,24 +956,25 @@
         }
         
         function updateUI() {
-            if (!gameData) return;
+            if (!window.gameData) return;
             
             // موجودی‌ها
-            document.getElementById('sodBalance').textContent = formatNumber(gameData.sod_balance);
-            document.getElementById('usdtBalance').textContent = gameData.usdt_balance.toFixed(4);
+            document.getElementById('sodBalance').textContent = formatNumber(window.gameData.sod_balance);
+            document.getElementById('usdtBalance').textContent = window.gameData.usdt_balance.toFixed(4);
             
             // آمار
-            document.getElementById('todayEarnings').textContent = formatNumber(gameData.today_earnings || 0) + ' SOD';
-            document.getElementById('miningPower').textContent = (gameData.mining_power || 10) + 'x';
-            document.getElementById('clickReward').textContent = '+' + (gameData.mining_power || 10) + ' SOD';
-            document.getElementById('availableUSDT').textContent = gameData.usdt_balance.toFixed(4) + ' USDT';
+            document.getElementById('todayEarnings').textContent = formatNumber(window.gameData.today_earnings || 0) + ' SOD';
+            document.getElementById('miningPower').textContent = (window.gameData.mining_power || 10) + 'x';
+            document.getElementById('clickReward').textContent = '+' + (window.gameData.mining_power || 10) + ' SOD';
+            document.getElementById('availableUSDT').textContent = window.gameData.usdt_balance.toFixed(4) + ' USDT';
             
             // نوار پیشرفت
-            const progressPercent = Math.min(((gameData.usdt_progress || 0) / EXCHANGE_RATE) * 100, 100);
+            const progressPercent = Math.min(((window.gameData.usdt_progress || 0) / EXCHANGE_RATE) * 100, 100);
             document.getElementById('progressFill').style.width = progressPercent + '%';
             
+            const remaining = EXCHANGE_RATE - (window.gameData.usdt_progress || 0);
             document.getElementById('progressText').textContent = 
-                formatNumber(gameData.usdt_progress || 0) + ' / ' + formatNumber(EXCHANGE_RATE) + ' SOD';
+                formatNumber(window.gameData.usdt_progress || 0) + ' / ' + formatNumber(EXCHANGE_RATE) + ' SOD';
         }
         
         function formatNumber(num) {
@@ -1009,9 +1008,26 @@
             setTimeout(() => effect.remove(), 1000);
         }
         
+        // اضافه کردن انیمیشن CSS
+        document.head.insertAdjacentHTML('beforeend', `
+            <style>
+                @keyframes floatUp {
+                    0% {
+                        opacity: 1;
+                        transform: translate(0, 0) scale(1);
+                    }
+                    100% {
+                        opacity: 0;
+                        transform: translate(0, -100px) scale(1.2);
+                    }
+                }
+            </style>
+        `);
+        
         function showAdminLink() {
-            const userInfoDiv = document.querySelector('.user-info');
-            if (userInfoDiv && userInfo && userInfo.is_admin) {
+            // در صورت نیاز ایجاد لینک ادمین
+            const userInfo = document.querySelector('.user-info');
+            if (userInfo && window.userInfo && window.userInfo.is_admin) {
                 const adminLink = document.createElement('a');
                 adminLink.href = 'admin.html';
                 adminLink.className = 'btn';
@@ -1019,14 +1035,14 @@
                 adminLink.style.width = 'auto';
                 adminLink.style.padding = '10px 20px';
                 adminLink.innerHTML = '<i class="fas fa-user-shield"></i> پنل مدیریت';
-                userInfoDiv.insertBefore(adminLink, userInfoDiv.querySelector('button'));
+                userInfo.insertBefore(adminLink, userInfo.querySelector('button'));
             }
         }
         
         // ==================== تابع‌های خرید ====================
         
         async function buySODPlan(planId) {
-            if (!currentUser || !gameData) {
+            if (!window.currentUser || !window.gameData) {
                 showNotification('خطا', 'لطفاً ابتدا وارد شوید', 'error');
                 return;
             }
@@ -1053,23 +1069,25 @@
             if (!confirm(confirmMsg)) return;
             
             try {
-                gameData.sod_balance += totalSOD;
-                gameData.total_mined += totalSOD;
+                // در نسخه واقعی اینجا پرداخت انجام می‌شود
+                // فعلاً فقط اضافه می‌کنیم
+                window.gameData.sod_balance += totalSOD;
+                window.gameData.total_mined += totalSOD;
                 
                 // بروزرسانی در دیتابیس
-                await supabaseClient
+                await window.supabaseClient
                     .from('game_data')
                     .update({
-                        sod_balance: gameData.sod_balance,
-                        total_mined: gameData.total_mined
+                        sod_balance: window.gameData.sod_balance,
+                        total_mined: window.gameData.total_mined
                     })
-                    .eq('user_id', currentUser.id);
+                    .eq('user_id', window.currentUser.id);
                 
                 // ثبت تراکنش
-                await supabaseClient
+                await window.supabaseClient
                     .from('transactions')
                     .insert([{
-                        user_id: currentUser.id,
+                        user_id: window.currentUser.id,
                         description: `خرید پنل ${plan.name}`,
                         amount: totalSOD,
                         type: 'sod',
@@ -1084,30 +1102,6 @@
                 showNotification('خطا', 'مشکلی در خرید پیش آمد', 'error');
             }
         }
-        
-        // ==================== بارگذاری اولیه ====================
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('🚀 صفحه بارگذاری شد');
-            
-            // تنظیم کلیک ماینر
-            document.getElementById('minerCore').addEventListener('click', function() {
-                mineSOD();
-            });
-            
-            // بارگذاری Supabase
-            const supabaseLoaded = initSupabase();
-            
-            if (supabaseLoaded) {
-                // بررسی auto-login
-                setTimeout(() => {
-                    initGame();
-                }, 1000);
-            } else {
-                showNotification('⚠️ هشدار', 'حالت آفلاین فعال شد', 'warning');
-                showAuthPage();
-            }
-        });
         
         // ==================== راه‌اندازی نهایی ====================
         
