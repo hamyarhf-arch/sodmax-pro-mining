@@ -1,7 +1,8 @@
 // ==================== app-core.js ====================
-// فایل کامل و اصلاح شده SODmAX Pro
+// فایل کامل SODmAX Pro - نسخه اصلاح شده
+// تاریخ: ۱۴۰۳/۱۰/۰۵
 
-console.log('🎮 Loading SODmAX game core...');
+console.log('🎮 Loading SODmAX Pro game engine...');
 
 class SODmaxGame {
     constructor() {
@@ -13,305 +14,148 @@ class SODmaxGame {
         this.autoMineInterval = null;
         this.autoSaveInterval = null;
         this.supabaseClient = null;
+        this.isInitialized = false;
         
         console.log('✅ Game instance created');
+        
+        // توابع دیباگ عمومی
+        window.debugGame = () => this.debugGame();
+        window.resetGame = () => this.resetGame();
+        window.quickLogin = (email, password) => this.quickLogin(email, password);
     }
     
-    // ==================== INITIALIZATION ====================
+    // ==================== SYSTEM INITIALIZATION ====================
     
     async init() {
-        console.log('🚀 Initializing game...');
+        console.log('🚀 Initializing SODmAX Pro...');
         
         try {
-            // راه‌اندازی Supabase (اگر موجود باشد)
-            await this.setupSupabase();
+            // 1. نمایش وضعیت اولیه
+            this.showLoadingMessage('در حال راه‌اندازی سیستم...');
             
-            // چک session موجود
-            await this.checkAuthSession();
+            // 2. بررسی و تنظیم Supabase
+            await this.setupDatabase();
             
-            // تنظیم event listeners
+            // 3. بررسی وضعیت کاربر
+            const hasUser = await this.loadUserSession();
+            
+            // 4. نمایش صفحه مناسب
+            if (hasUser) {
+                console.log('✅ کاربر وارد شده است - نمایش صفحه اصلی');
+                this.showMainPage();
+                this.updateUI();
+                this.showNotification('خوش آمدید', `سلام ${this.userInfo?.full_name || this.user?.email}!`);
+            } else {
+                console.log('⚠️ کاربر وارد نشده - نمایش صفحه ورود');
+                this.showLoginPage();
+                this.addTestButtons();
+            }
+            
+            // 5. تنظیم رویدادها
             this.setupEventListeners();
             
-            // شروع auto-save
-            this.startAutoSave();
-            
-            // رندر پنل‌های فروش
+            // 6. رندر پنل‌ها
             this.renderSalePlans();
             
+            // 7. شروع ذخیره خودکار
+            this.startAutoSave();
+            
+            // 8. علامت‌گذاری به عنوان راه‌اندازی شده
+            this.isInitialized = true;
+            
             console.log('✅ Game initialized successfully');
+            this.hideLoadingMessage();
+            
         } catch (error) {
             console.error('❌ Error initializing game:', error);
             this.showLoginPage();
+            this.addEmergencyButtons();
         }
     }
     
-    async setupSupabase() {
+    async setupDatabase() {
         try {
-            // اگر Supabase در window موجود باشد
-            if (window.supabase && window.supabaseClient) {
-                this.supabaseClient = window.supabaseClient;
-                console.log('✅ Using existing Supabase client');
-                return true;
-            }
-            
-            // اگر URL و KEY در localStorage ذخیره شده‌اند
-            const supabaseUrl = localStorage.getItem('supabase_url') || 'https://your-project.supabase.co';
-            const supabaseKey = localStorage.getItem('supabase_key') || 'your-anon-key';
-            
-            if (window.supabase) {
+            // بررسی وجود Supabase
+            if (typeof supabase !== 'undefined') {
+                const supabaseUrl = localStorage.getItem('supabase_url') || 'https://your-project.supabase.co';
+                const supabaseKey = localStorage.getItem('supabase_key') || 'your-anon-key';
+                
                 this.supabaseClient = supabase.createClient(supabaseUrl, supabaseKey);
                 window.supabaseClient = this.supabaseClient;
-                console.log('✅ Created new Supabase client');
+                console.log('✅ Supabase client created');
                 return true;
             }
             
-            console.log('⚠️ Supabase not available, using localStorage fallback');
+            console.log('⚠️ Supabase not available, using localStorage');
             return false;
             
         } catch (error) {
-            console.error('❌ Error setting up Supabase:', error);
+            console.error('❌ Error setting up database:', error);
             return false;
         }
     }
     
-    async checkAuthSession() {
-        try {
-            console.log('🔐 Checking authentication session...');
-            
-            // اگر Supabase موجود نباشد، از localStorage استفاده کن
-            if (!this.supabaseClient) {
-                await this.checkLocalStorageSession();
-                return;
-            }
-            
-            const { data: { session }, error } = await this.supabaseClient.auth.getSession();
-            
-            if (error) {
-                console.error('Error getting session:', error);
-                this.showLoginPage();
-                return;
-            }
-            
-            if (session) {
-                console.log('✅ User session found:', session.user.email);
-                this.user = session.user;
-                await this.loadUserData();
-                this.showMainPage();
-            } else {
-                console.log('ℹ️ No user session found');
-                this.showLoginPage();
-            }
-        } catch (error) {
-            console.error('Error in checkAuthSession:', error);
-            this.showLoginPage();
-        }
-    }
-    
-    async checkLocalStorageSession() {
-        const userData = localStorage.getItem('sodmax_user');
-        const gameData = localStorage.getItem('sodmax_game');
-        
-        if (userData && gameData) {
-            try {
-                this.user = JSON.parse(userData);
-                this.gameData = JSON.parse(gameData);
-                this.userInfo = { ...this.user };
-                
-                // بارگذاری تراکنش‌ها
-                this.transactions = JSON.parse(localStorage.getItem('sodmax_transactions') || '[]');
-                
-                console.log('✅ Loaded user from localStorage:', this.user.email);
-                this.showMainPage();
-                this.updateUI();
-                
-                // شبیه‌سازی لاگین موفق
-                this.showNotification('خوش آمدید', `سلام ${this.userInfo.full_name || this.user.email}!`);
-                
-            } catch (error) {
-                console.error('Error parsing localStorage data:', error);
-                this.showLoginPage();
-            }
-        } else {
-            console.log('ℹ️ No localStorage session found');
-            this.showLoginPage();
-        }
-    }
-    
-    // ==================== USER MANAGEMENT ====================
-    
-    async login(email, password) {
-        console.log('🔑 Attempting login for:', email);
-        
-        if (!email || !password) {
-            this.showNotification('خطا', 'لطفاً ایمیل و رمز عبور را وارد کنید');
-            return false;
-        }
-        
-        // اگر Supabase موجود نباشد، از localStorage استفاده کن
-        if (!this.supabaseClient) {
-            return this.localStorageLogin(email, password);
-        }
+    async loadUserSession() {
+        console.log('🔍 Checking user session...');
         
         try {
-            const { data, error } = await this.supabaseClient.auth.signInWithPassword({
-                email: email,
-                password: password
-            });
-            
-            if (error) {
-                console.error('Login error:', error);
-                this.showNotification('خطا در ورود', error.message);
-                return false;
+            // اول از localStorage چک کن
+            const localStorageUser = this.loadFromLocalStorage();
+            if (localStorageUser) {
+                return true;
             }
             
-            console.log('✅ Login successful:', data.user.email);
-            this.user = data.user;
-            
-            // بارگذاری داده‌های کاربر
-            await this.loadUserData();
-            
-            // نمایش صفحه اصلی
-            this.showMainPage();
-            
-            this.showNotification('خوش آمدید', `سلام ${this.userInfo?.full_name || data.user.email}!`);
-            
-            return true;
-            
-        } catch (error) {
-            console.error('Unexpected login error:', error);
-            this.showNotification('خطا', 'مشکلی در ورود پیش آمد');
-            return false;
-        }
-    }
-    
-    localStorageLogin(email, password) {
-        // کاربران تست
-        const testUsers = {
-            'test@example.com': { password: '123456', full_name: 'کاربر تست', sod_balance: 1000000 },
-            'hamyarhf@gmail.com': { password: 'admin123', full_name: 'مدیر سیستم', sod_balance: 5000000, isAdmin: true }
-        };
-        
-        if (testUsers[email] && testUsers[email].password === password) {
-            const user = {
-                id: 'local-' + Date.now(),
-                email: email,
-                user_metadata: { full_name: testUsers[email].full_name }
-            };
-            
-            this.user = user;
-            
-            this.gameData = {
-                sod_balance: testUsers[email].sod_balance || 1000000,
-                usdt_balance: 0,
-                today_earnings: 0,
-                mining_power: 10,
-                user_level: 1,
-                usdt_progress: 0,
-                total_mined: testUsers[email].sod_balance || 1000000,
-                boost_active: false,
-                boost_end_time: 0
-            };
-            
-            this.userInfo = {
-                full_name: testUsers[email].full_name,
-                email: email,
-                register_date: new Date().toLocaleDateString('fa-IR'),
-                is_admin: testUsers[email].isAdmin || false
-            };
-            
-            // ذخیره در localStorage
-            localStorage.setItem('sodmax_user', JSON.stringify(user));
-            localStorage.setItem('sodmax_game', JSON.stringify(this.gameData));
-            localStorage.setItem('sodmax_userinfo', JSON.stringify(this.userInfo));
-            
-            // بارگذاری تراکنش‌ها
-            this.transactions = JSON.parse(localStorage.getItem('sodmax_transactions') || '[]');
-            if (this.transactions.length === 0) {
-                this.transactions.push({
-                    description: 'هدیه ثبت نام',
-                    amount: this.gameData.sod_balance,
-                    type: 'sod',
-                    created_at: new Date().toISOString()
-                });
-            }
-            
-            // بررسی ادمین
-            this.isAdmin = testUsers[email].isAdmin || false;
-            
-            console.log('✅ Local login successful:', email);
-            this.showMainPage();
-            this.updateUI();
-            
-            this.showNotification('خوش آمدید', `سلام ${testUsers[email].full_name}!`);
-            
-            return true;
-        } else {
-            this.showNotification('خطا در ورود', 'ایمیل یا رمز عبور اشتباه است');
-            return false;
-        }
-    }
-    
-    async register(email, password, fullName) {
-        console.log('📝 Attempting registration for:', email);
-        
-        if (!email || !password) {
-            this.showNotification('خطا', 'لطفاً ایمیل و رمز عبور را وارد کنید');
-            return false;
-        }
-        
-        // اگر Supabase موجود نباشد، از localStorage استفاده کن
-        if (!this.supabaseClient) {
-            return this.localStorageRegister(email, password, fullName);
-        }
-        
-        try {
-            const { data, error } = await this.supabaseClient.auth.signUp({
-                email: email,
-                password: password,
-                options: {
-                    data: {
-                        full_name: fullName || email.split('@')[0]
-                    }
+            // اگر Supabase داریم، از session آن چک کن
+            if (this.supabaseClient) {
+                const { data: { session } } = await this.supabaseClient.auth.getSession();
+                if (session?.user) {
+                    this.user = session.user;
+                    await this.createUserData();
+                    return true;
                 }
-            });
-            
-            if (error) {
-                console.error('Registration error:', error);
-                this.showNotification('خطا در ثبت‌نام', error.message);
-                return false;
             }
             
-            console.log('✅ Registration successful:', data.user?.email);
-            
-            if (data.user) {
-                this.user = data.user;
-                await this.loadUserData();
-                this.showMainPage();
-                this.showNotification('ثبت‌نام موفق', 'حساب شما با موفقیت ایجاد شد!');
-            } else {
-                this.showNotification('تأیید ایمیل', 'لطفاً ایمیل خود را برای تأیید حساب چک کنید.');
-            }
-            
-            return true;
+            return false;
             
         } catch (error) {
-            console.error('Unexpected registration error:', error);
-            this.showNotification('خطا', 'مشکلی در ثبت‌نام پیش آمد');
+            console.error('❌ Error loading user session:', error);
             return false;
         }
     }
     
-    localStorageRegister(email, password, fullName) {
-        const user = {
-            id: 'local-' + Date.now(),
-            email: email,
-            user_metadata: { full_name: fullName || email.split('@')[0] }
-        };
+    loadFromLocalStorage() {
+        try {
+            const userData = localStorage.getItem('sodmax_user');
+            const gameData = localStorage.getItem('sodmax_game');
+            
+            if (!userData || !gameData) {
+                console.log('ℹ️ No user data in localStorage');
+                return false;
+            }
+            
+            this.user = JSON.parse(userData);
+            this.gameData = JSON.parse(gameData);
+            this.userInfo = JSON.parse(localStorage.getItem('sodmax_userinfo') || '{}');
+            this.transactions = JSON.parse(localStorage.getItem('sodmax_transactions') || '[]');
+            
+            // چک ادمین
+            this.checkAdminStatus();
+            
+            console.log('✅ User loaded from localStorage:', this.user?.email);
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Error loading from localStorage:', error);
+            return false;
+        }
+    }
+    
+    async createUserData() {
+        if (!this.user) return;
         
-        this.user = user;
-        
+        // ایجاد داده‌های اولیه
         this.gameData = {
-            sod_balance: 1000000, // هدیه ثبت نام
+            sod_balance: 1000000,
             usdt_balance: 0,
             today_earnings: 0,
             mining_power: 10,
@@ -323,56 +167,233 @@ class SODmaxGame {
         };
         
         this.userInfo = {
-            full_name: fullName || email.split('@')[0],
-            email: email,
+            full_name: this.user.email.split('@')[0],
+            email: this.user.email,
             register_date: new Date().toLocaleDateString('fa-IR'),
             is_admin: false
         };
         
-        // ذخیره در localStorage
-        localStorage.setItem('sodmax_user', JSON.stringify(user));
-        localStorage.setItem('sodmax_game', JSON.stringify(this.gameData));
-        localStorage.setItem('sodmax_userinfo', JSON.stringify(this.userInfo));
-        
-        // ایجاد تراکنش اولیه
         this.transactions = [{
             description: 'هدیه ثبت نام',
             amount: 1000000,
             type: 'sod',
             created_at: new Date().toISOString()
         }];
-        localStorage.setItem('sodmax_transactions', JSON.stringify(this.transactions));
         
-        console.log('✅ Local registration successful:', email);
-        this.showMainPage();
-        this.updateUI();
+        // ذخیره در localStorage
+        this.saveToLocalStorage();
         
-        this.showNotification('ثبت‌نام موفق', `حساب شما با موفقیت ایجاد شد!`);
+        console.log('✅ New user data created');
+    }
+    
+    saveToLocalStorage() {
+        try {
+            if (this.user) localStorage.setItem('sodmax_user', JSON.stringify(this.user));
+            if (this.gameData) localStorage.setItem('sodmax_game', JSON.stringify(this.gameData));
+            if (this.userInfo) localStorage.setItem('sodmax_userinfo', JSON.stringify(this.userInfo));
+            if (this.transactions) localStorage.setItem('sodmax_transactions', JSON.stringify(this.transactions));
+            
+            console.log('💾 Data saved to localStorage');
+        } catch (error) {
+            console.error('❌ Error saving to localStorage:', error);
+        }
+    }
+    
+    // ==================== USER MANAGEMENT ====================
+    
+    async login(email, password) {
+        console.log(`🔑 Attempting login for: ${email}`);
         
-        return true;
+        if (!email || !password) {
+            this.showNotification('خطا', 'لطفاً ایمیل و رمز عبور را وارد کنید');
+            return false;
+        }
+        
+        // لیست کاربران تست
+        const testUsers = {
+            'test@example.com': { 
+                password: '123456', 
+                full_name: 'کاربر تست',
+                sod_balance: 1000000 
+            },
+            'hamyarhf@gmail.com': { 
+                password: 'admin123', 
+                full_name: 'مدیر سیستم',
+                sod_balance: 5000000,
+                is_admin: true 
+            },
+            'user@example.com': { 
+                password: '123456', 
+                full_name: 'کاربر نمونه',
+                sod_balance: 500000 
+            }
+        };
+        
+        try {
+            // بررسی کاربر تست
+            if (testUsers[email] && testUsers[email].password === password) {
+                console.log('✅ Test user login successful');
+                
+                // ایجاد کاربر
+                this.user = {
+                    id: 'test-' + Date.now(),
+                    email: email,
+                    user_metadata: { full_name: testUsers[email].full_name }
+                };
+                
+                // ایجاد داده بازی
+                this.gameData = {
+                    sod_balance: testUsers[email].sod_balance,
+                    usdt_balance: 0,
+                    today_earnings: 0,
+                    mining_power: 10,
+                    user_level: 1,
+                    usdt_progress: 0,
+                    total_mined: testUsers[email].sod_balance,
+                    boost_active: false,
+                    boost_end_time: 0
+                };
+                
+                this.userInfo = {
+                    full_name: testUsers[email].full_name,
+                    email: email,
+                    register_date: new Date().toLocaleDateString('fa-IR'),
+                    is_admin: testUsers[email].is_admin || false
+                };
+                
+                this.transactions = [{
+                    description: 'هدیه ورود',
+                    amount: testUsers[email].sod_balance,
+                    type: 'sod',
+                    created_at: new Date().toISOString()
+                }];
+                
+                // ذخیره
+                this.saveToLocalStorage();
+                
+                // بروزرسانی UI
+                this.showMainPage();
+                this.updateUI();
+                this.checkAdminStatus();
+                
+                this.showNotification('خوش آمدید', `سلام ${testUsers[email].full_name}!`);
+                
+                return true;
+            }
+            
+            // اگر کاربر تست نیست و Supabase داریم
+            if (this.supabaseClient) {
+                const { data, error } = await this.supabaseClient.auth.signInWithPassword({
+                    email: email,
+                    password: password
+                });
+                
+                if (error) {
+                    this.showNotification('خطا در ورود', 'ایمیل یا رمز عبور اشتباه است');
+                    return false;
+                }
+                
+                this.user = data.user;
+                await this.createUserData();
+                this.showMainPage();
+                this.updateUI();
+                
+                this.showNotification('خوش آمدید', 'با موفقیت وارد شدید!');
+                
+                return true;
+            }
+            
+            // اگر نه تست هست و نه Supabase
+            this.showNotification('خطا', 'سیستم ورود در دسترس نیست');
+            return false;
+            
+        } catch (error) {
+            console.error('❌ Login error:', error);
+            this.showNotification('خطا', 'مشکلی در ورود پیش آمد');
+            return false;
+        }
+    }
+    
+    async register(email, password, fullName) {
+        console.log(`📝 Attempting registration for: ${email}`);
+        
+        if (!email || !password) {
+            this.showNotification('خطا', 'لطفاً ایمیل و رمز عبور را وارد کنید');
+            return false;
+        }
+        
+        try {
+            // ایجاد کاربر محلی
+            this.user = {
+                id: 'user-' + Date.now(),
+                email: email,
+                user_metadata: { full_name: fullName || email.split('@')[0] }
+            };
+            
+            // ایجاد داده بازی
+            this.gameData = {
+                sod_balance: 1000000,
+                usdt_balance: 0,
+                today_earnings: 0,
+                mining_power: 10,
+                user_level: 1,
+                usdt_progress: 1000000,
+                total_mined: 1000000,
+                boost_active: false,
+                boost_end_time: 0
+            };
+            
+            this.userInfo = {
+                full_name: fullName || email.split('@')[0],
+                email: email,
+                register_date: new Date().toLocaleDateString('fa-IR'),
+                is_admin: false
+            };
+            
+            this.transactions = [{
+                description: 'هدیه ثبت نام',
+                amount: 1000000,
+                type: 'sod',
+                created_at: new Date().toISOString()
+            }];
+            
+            // ذخیره
+            this.saveToLocalStorage();
+            
+            // نمایش صفحه اصلی
+            this.showMainPage();
+            this.updateUI();
+            
+            this.showNotification('ثبت‌نام موفق', 'حساب شما با موفقیت ایجاد شد!');
+            
+            // اگر Supabase داریم، ثبت‌نام در آن
+            if (this.supabaseClient) {
+                await this.supabaseClient.auth.signUp({
+                    email: email,
+                    password: password,
+                    options: {
+                        data: { full_name: fullName || email.split('@')[0] }
+                    }
+                });
+            }
+            
+            return true;
+            
+        } catch (error) {
+            console.error('❌ Registration error:', error);
+            this.showNotification('خطا', 'مشکلی در ثبت‌نام پیش آمد');
+            return false;
+        }
     }
     
     async logout() {
         console.log('🚪 Logging out...');
         
         try {
-            // اگر Supabase داریم، logout از آن
+            // خروج از Supabase اگر موجود باشد
             if (this.supabaseClient) {
-                const { error } = await this.supabaseClient.auth.signOut();
-                if (error) console.error('Logout error:', error);
+                await this.supabaseClient.auth.signOut();
             }
-            
-            // پاک کردن داده‌های localStorage
-            localStorage.removeItem('sodmax_user');
-            localStorage.removeItem('sodmax_game');
-            localStorage.removeItem('sodmax_userinfo');
-            localStorage.removeItem('sodmax_transactions');
-            
-            this.user = null;
-            this.gameData = null;
-            this.userInfo = null;
-            this.transactions = [];
-            this.isAdmin = false;
             
             // توقف intervalها
             if (this.autoMineInterval) {
@@ -385,153 +406,83 @@ class SODmaxGame {
                 this.autoSaveInterval = null;
             }
             
-            console.log('✅ Logout successful');
+            // نمایش صفحه ورود
             this.showLoginPage();
+            this.addTestButtons();
+            
             this.showNotification('خروج', 'با موفقیت از حساب خود خارج شدید.');
             
-            return true;
+            console.log('✅ Logout successful');
             
         } catch (error) {
-            console.error('Unexpected logout error:', error);
-            return false;
+            console.error('❌ Logout error:', error);
         }
     }
     
-    async loadUserData() {
-        if (!this.user) {
-            console.error('❌ No user to load data for');
-            return;
-        }
-        
-        console.log('📊 Loading user data for:', this.user.email);
-        
-        try {
-            // اگر Supabase داریم، از دیتابیس لود کن
-            if (this.supabaseClient && window.GameDB) {
-                const userResult = await window.GameDB.getOrCreateUser(this.user.id, this.user.email);
-                if (userResult.error) {
-                    console.error('Error getting/creating user:', userResult.error);
-                    return;
-                }
-                this.userInfo = userResult.data;
-                
-                const gameResult = await window.GameDB.getOrCreateGameData(this.user.id);
-                if (gameResult.error) {
-                    console.error('Error getting/creating game data:', gameResult.error);
-                    return;
-                }
-                this.gameData = gameResult.data;
-            } else {
-                // از localStorage لود کن
-                const savedGameData = localStorage.getItem('sodmax_game');
-                const savedUserInfo = localStorage.getItem('sodmax_userinfo');
-                
-                if (savedGameData) this.gameData = JSON.parse(savedGameData);
-                if (savedUserInfo) this.userInfo = JSON.parse(savedUserInfo);
-                
-                // اگر داده‌ای وجود نداشت، ایجاد کن
-                if (!this.gameData) {
-                    this.gameData = {
-                        sod_balance: 1000000,
-                        usdt_balance: 0,
-                        today_earnings: 0,
-                        mining_power: 10,
-                        user_level: 1,
-                        usdt_progress: 0,
-                        total_mined: 1000000,
-                        boost_active: false,
-                        boost_end_time: 0
-                    };
-                }
-                
-                if (!this.userInfo) {
-                    this.userInfo = {
-                        full_name: this.user.email.split('@')[0],
-                        email: this.user.email,
-                        register_date: new Date().toLocaleDateString('fa-IR'),
-                        is_admin: false
-                    };
-                }
-            }
-            
-            // بارگذاری تراکنش‌ها
-            await this.loadTransactions();
-            
-            // چک ادمین بودن
-            this.checkAdminStatus();
-            
-            // آپدیت UI
-            this.updateUI();
-            
-            console.log('✅ User data loaded successfully');
-            
-        } catch (error) {
-            console.error('Error in loadUserData:', error);
-        }
-    }
-    
-    async loadTransactions() {
-        if (!this.user) return;
-        
-        try {
-            if (this.supabaseClient && window.GameDB) {
-                const { data, error } = await window.GameDB.getTransactions(this.user.id, 15);
-                if (!error) this.transactions = data || [];
-            } else {
-                // از localStorage لود کن
-                const savedTransactions = localStorage.getItem('sodmax_transactions');
-                this.transactions = savedTransactions ? JSON.parse(savedTransactions) : [];
-            }
-            
-            // اگر تراکنشی نیست، یک تراکنش نمونه اضافه کن
-            if (this.transactions.length === 0 && this.gameData) {
-                this.transactions.push({
-                    description: 'هدیه ثبت نام',
-                    amount: this.gameData.sod_balance || 1000000,
-                    type: 'sod',
-                    created_at: new Date().toISOString()
-                });
-                
-                localStorage.setItem('sodmax_transactions', JSON.stringify(this.transactions));
-            }
-            
-            this.renderTransactions();
-            
-        } catch (error) {
-            console.error('Error in loadTransactions:', error);
-        }
+    quickLogin(email, password) {
+        console.log(`⚡ Quick login: ${email}`);
+        return this.login(email, password);
     }
     
     // ==================== GAME LOGIC ====================
     
     async mine() {
-        if (!this.user || !this.gameData) {
-            console.error('❌ Cannot mine: user or game data not loaded');
-            this.showNotification('خطا', 'لطفاً ابتدا وارد حساب خود شوید');
-            return;
+        // بررسی اولیه
+        if (!this.isInitialized) {
+            console.log('🔄 Game not initialized, initializing now...');
+            await this.init();
         }
         
+        if (!this.user || !this.gameData) {
+            console.error('❌ Cannot mine: user or game data not loaded');
+            console.log('🔄 Attempting to load user data...');
+            
+            await this.loadUserSession();
+            
+            if (!this.user || !this.gameData) {
+                this.showNotification(
+                    'خطای سیستم', 
+                    'لطفاً ابتدا وارد حساب خود شوید.\n\n' +
+                    'راه‌حل: روی دکمه "ورود با کاربر تست" کلیک کنید.'
+                );
+                this.showLoginPage();
+                return;
+            }
+        }
+        
+        console.log('⛏️ Starting mining process...');
+        
         try {
+            // محاسبه درآمد
             const baseEarned = this.gameData.mining_power || 10;
             const boostMultiplier = this.gameData.boost_active ? 3 : 1;
             const totalEarned = baseEarned * boostMultiplier;
             
-            console.log(`⛏️ Mining: ${baseEarned} × ${boostMultiplier} = ${totalEarned} SOD`);
+            console.log(`💰 Earning: ${baseEarned} × ${boostMultiplier} = ${totalEarned} SOD`);
             
-            // آپدیت محلی
-            this.gameData.sod_balance = (this.gameData.sod_balance || 0) + totalEarned;
-            this.gameData.total_mined = (this.gameData.total_mined || 0) + totalEarned;
-            this.gameData.today_earnings = (this.gameData.today_earnings || 0) + totalEarned;
-            this.gameData.usdt_progress = (this.gameData.usdt_progress || 0) + totalEarned;
-            
-            // ذخیره در localStorage
-            localStorage.setItem('sodmax_game', JSON.stringify(this.gameData));
+            // آپدیت داده‌ها
+            this.gameData.sod_balance += totalEarned;
+            this.gameData.total_mined += totalEarned;
+            this.gameData.today_earnings += totalEarned;
+            this.gameData.usdt_progress += totalEarned;
             
             // ثبت تراکنش
             this.addTransaction('استخراج دستی', totalEarned, 'sod');
             
+            // ذخیره
+            this.saveToLocalStorage();
+            
             // افکت بصری
             this.createMiningEffect(totalEarned);
+            
+            // افکت کلیک
+            const minerCore = document.getElementById('minerCore');
+            if (minerCore) {
+                minerCore.style.transform = 'scale(0.95)';
+                setTimeout(() => {
+                    minerCore.style.transform = 'scale(1)';
+                }, 150);
+            }
             
             // آپدیت UI
             this.updateUI();
@@ -539,8 +490,10 @@ class SODmaxGame {
             // چک پاداش USDT
             await this.checkUSDT();
             
+            console.log('✅ Mining successful');
+            
         } catch (error) {
-            console.error('❌ Error in mining:', error);
+            console.error('❌ Mining error:', error);
             this.showNotification('خطا', 'مشکلی در استخراج پیش آمد');
         }
     }
@@ -555,40 +508,42 @@ class SODmaxGame {
             const cycles = Math.floor(this.gameData.usdt_progress / 10000000);
             const totalUSDT = usdtEarned * cycles;
             
-            console.log(`💰 USDT reward: ${cycles} cycles = ${totalUSDT} USDT`);
+            console.log(`🎁 USDT reward: ${cycles} cycles = ${totalUSDT} USDT`);
             
-            this.gameData.usdt_balance = (this.gameData.usdt_balance || 0) + totalUSDT;
+            // آپدیت موجودی
+            this.gameData.usdt_balance += totalUSDT;
             this.gameData.usdt_progress %= 10000000;
-            
-            // ذخیره در localStorage
-            localStorage.setItem('sodmax_game', JSON.stringify(this.gameData));
             
             // ثبت تراکنش
             this.addTransaction('دریافت پاداش USDT', totalUSDT, 'usdt');
             
+            // ذخیره
+            this.saveToLocalStorage();
+            
             // نوتیفیکیشن
             this.showNotification(
-                '🎉 پاداش USDT', 
-                `${totalUSDT.toFixed(4)} USDT دریافت کردید!`
+                '🎉 پاداش USDT دریافت شد!', 
+                `${totalUSDT.toFixed(4)} USDT به موجودی شما اضافه شد.`
             );
             
-            // شانس ارتقاء سطح (15% شانس)
+            // شانس ارتقاء سطح
             if (Math.random() < 0.15) {
-                this.gameData.user_level = (this.gameData.user_level || 1) + 1;
+                this.gameData.user_level += 1;
                 this.gameData.mining_power = 10 * this.gameData.user_level;
                 
-                localStorage.setItem('sodmax_game', JSON.stringify(this.gameData));
+                this.saveToLocalStorage();
                 
                 this.showNotification(
-                    '⭐ ارتقاء سطح', 
-                    `سطح شما به ${this.gameData.user_level} ارتقاء یافت!`
+                    '⭐ ارتقاء سطح!', 
+                    `سطح شما به ${this.gameData.user_level} ارتقاء یافت!\nقدرت استخراج: ${this.gameData.mining_power}x`
                 );
             }
             
+            // آپدیت UI
             this.updateUI();
             
         } catch (error) {
-            console.error('❌ Error in USDT check:', error);
+            console.error('❌ USDT check error:', error);
         }
     }
     
@@ -602,12 +557,12 @@ class SODmaxGame {
         
         this.transactions.unshift(transaction);
         
-        // محدود کردن به 20 تراکنش
-        if (this.transactions.length > 20) {
-            this.transactions = this.transactions.slice(0, 20);
+        // محدود کردن به 15 تراکنش
+        if (this.transactions.length > 15) {
+            this.transactions = this.transactions.slice(0, 15);
         }
         
-        // ذخیره در localStorage
+        // ذخیره
         localStorage.setItem('sodmax_transactions', JSON.stringify(this.transactions));
         
         // آپدیت UI
@@ -615,91 +570,259 @@ class SODmaxGame {
     }
     
     async buySODPlan(planId) {
+        if (!this.user || !this.gameData) {
+            this.showNotification('خطا', 'لطفاً ابتدا وارد حساب خود شوید');
+            return;
+        }
+        
         const plans = {
-            1: { price: 1, sod: 5000000, bonus: 500000, name: 'استارتر' },
-            2: { price: 5, sod: 30000000, bonus: 3000000, name: 'پرو' },
-            3: { price: 15, sod: 100000000, bonus: 10000000, name: 'پلاتینیوم' },
-            4: { price: 50, sod: 500000000, bonus: 50000000, name: 'الماس' }
+            1: { 
+                price: 1, 
+                sod: 5000000, 
+                bonus: 500000, 
+                name: 'استارتر',
+                features: ['۵,۰۰۰,۰۰۰ SOD', 'هدیه ۵۰۰,۰۰۰ SOD', '+۵٪ قدرت استخراج']
+            },
+            2: { 
+                price: 5, 
+                sod: 30000000, 
+                bonus: 3000000, 
+                name: 'پرو',
+                features: ['۳۰,۰۰۰,۰۰۰ SOD', 'هدیه ۳,۰۰۰,۰۰۰ SOD', '+۱۵٪ قدرت استخراج']
+            },
+            3: { 
+                price: 15, 
+                sod: 100000000, 
+                bonus: 10000000, 
+                name: 'پلاتینیوم',
+                features: ['۱۰۰,۰۰۰,۰۰۰ SOD', 'هدیه ۱۰,۰۰۰,۰۰۰ SOD', '+۳۰٪ قدرت استخراج']
+            },
+            4: { 
+                price: 50, 
+                sod: 500000000, 
+                bonus: 50000000, 
+                name: 'الماس',
+                features: ['۵۰۰,۰۰۰,۰۰۰ SOD', 'هدیه ۵۰,۰۰۰,۰۰۰ SOD', '+۵۰٪ قدرت استخراج']
+            }
         };
         
         const plan = plans[planId];
         if (!plan) {
-            console.error('❌ Invalid plan ID:', planId);
+            this.showNotification('خطا', 'پنل انتخابی معتبر نیست');
             return;
         }
         
         const totalSOD = plan.sod + plan.bonus;
         
-        console.log(`🛒 Buying plan ${planId}: ${totalSOD} SOD`);
-        
         // تایید خرید
-        if (!confirm(`آیا مطمئن هستید که می‌خواهید پنل "${plan.name}" را خریداری کنید؟\n\n💰 دریافت: ${this.formatNumber(totalSOD)} SOD\n🎁 شامل: ${this.formatNumber(plan.sod)} SOD اصلی + ${this.formatNumber(plan.bonus)} SOD هدیه`)) {
+        const confirmMessage = `آیا مطمئن هستید که می‌خواهید پنل "${plan.name}" را خریداری کنید؟\n\n` +
+                              `💰 مبلغ: ${plan.price} USDT\n` +
+                              `🎁 دریافت: ${this.formatNumber(totalSOD)} SOD\n` +
+                              `📊 شامل: ${this.formatNumber(plan.sod)} SOD اصلی + ${this.formatNumber(plan.bonus)} SOD هدیه`;
+        
+        if (!confirm(confirmMessage)) {
             return;
         }
         
         try {
             // در نسخه واقعی اینجا پرداخت انجام می‌شود
             // فعلاً فقط اضافه می‌کنیم
-            this.gameData.sod_balance = (this.gameData.sod_balance || 0) + totalSOD;
-            this.gameData.total_mined = (this.gameData.total_mined || 0) + totalSOD;
             
-            // ذخیره در localStorage
-            localStorage.setItem('sodmax_game', JSON.stringify(this.gameData));
+            console.log(`🛒 Buying ${plan.name} plan: ${totalSOD} SOD`);
+            
+            this.gameData.sod_balance += totalSOD;
+            this.gameData.total_mined += totalSOD;
+            
+            // ذخیره
+            this.saveToLocalStorage();
             
             // ثبت تراکنش
             this.addTransaction(`خرید پنل ${plan.name}`, totalSOD, 'sod');
             
+            // نوتیفیکیشن
             this.showNotification(
-                '🛒 خرید موفق', 
-                `${this.formatNumber(totalSOD)} SOD خریداری شد!\n(اصلی: ${this.formatNumber(plan.sod)} + هدیه: ${this.formatNumber(plan.bonus)})`
+                '🎉 خرید موفق!', 
+                `${this.formatNumber(totalSOD)} SOD به موجودی شما اضافه شد.\n` +
+                `(اصلی: ${this.formatNumber(plan.sod)} + هدیه: ${this.formatNumber(plan.bonus)})`
             );
             
+            // آپدیت UI
             this.updateUI();
             
         } catch (error) {
-            console.error('❌ Error buying plan:', error);
+            console.error('❌ Purchase error:', error);
             this.showNotification('خطا', 'مشکلی در خرید پیش آمد');
         }
     }
     
     async claimUSDT() {
-        if (!this.gameData || !this.gameData.usdt_balance || this.gameData.usdt_balance <= 0) {
-            this.showNotification('💰 ادامه استخراج', 'هنوز USDT پاداش دریافت نکرده‌اید.');
+        if (!this.user || !this.gameData) {
+            this.showNotification('خطا', 'لطفاً ابتدا وارد حساب خود شوید');
+            return;
+        }
+        
+        if (!this.gameData.usdt_balance || this.gameData.usdt_balance <= 0) {
+            this.showNotification('اطلاع', 'هنوز USDT پاداش دریافت نکرده‌اید.');
             return;
         }
         
         const usdtToClaim = this.gameData.usdt_balance;
         const sodNeeded = Math.floor(usdtToClaim * 1000000000); // 1B SOD per USDT
         
-        if (this.gameData.sod_balance >= sodNeeded) {
-            if (confirm(`آیا مایل به دریافت ${usdtToClaim.toFixed(4)} USDT هستید؟\n\n${this.formatNumber(sodNeeded)} SOD از موجودی شما کسر خواهد شد.`)) {
-                
-                console.log(`💸 Claiming ${usdtToClaim} USDT, costing ${sodNeeded} SOD`);
-                
-                this.gameData.usdt_balance = 0;
-                this.gameData.sod_balance -= sodNeeded;
-                
-                // ذخیره در localStorage
-                localStorage.setItem('sodmax_game', JSON.stringify(this.gameData));
-                
-                // ثبت تراکنش‌ها
-                this.addTransaction('دریافت پاداش USDT', -usdtToClaim, 'usdt');
-                this.addTransaction('تبدیل SOD به USDT', -sodNeeded, 'sod');
-                
-                this.showNotification(
-                    '✅ پاداش دریافت شد', 
-                    `${usdtToClaim.toFixed(4)} USDT دریافت کردید.\n${this.formatNumber(sodNeeded)} SOD کسر شد.`
-                );
-                
-                this.updateUI();
-                
-            }
-        } else {
+        // بررسی موجودی SOD
+        if (this.gameData.sod_balance < sodNeeded) {
             this.showNotification(
-                '⚠️ موجودی ناکافی', 
-                `برای دریافت ${usdtToClaim.toFixed(4)} USDT به ${this.formatNumber(sodNeeded)} SOD نیاز دارید.\nموجودی فعلی: ${this.formatNumber(this.gameData.sod_balance)} SOD`
+                'موجودی ناکافی', 
+                `برای دریافت ${usdtToClaim.toFixed(4)} USDT به ${this.formatNumber(sodNeeded)} SOD نیاز دارید.\n` +
+                `موجودی فعلی شما: ${this.formatNumber(this.gameData.sod_balance)} SOD`
             );
+            return;
         }
+        
+        // تایید دریافت
+        const confirmMessage = `آیا مایل به دریافت ${usdtToClaim.toFixed(4)} USDT هستید؟\n\n` +
+                              `⚠️ ${this.formatNumber(sodNeeded)} SOD از موجودی شما کسر خواهد شد.\n` +
+                              `✅ دریافت: ${usdtToClaim.toFixed(4)} USDT`;
+        
+        if (!confirm(confirmMessage)) {
+            return;
+        }
+        
+        try {
+            console.log(`💸 Claiming ${usdtToClaim} USDT, costing ${sodNeeded} SOD`);
+            
+            // آپدیت موجودی‌ها
+            this.gameData.usdt_balance = 0;
+            this.gameData.sod_balance -= sodNeeded;
+            
+            // ذخیره
+            this.saveToLocalStorage();
+            
+            // ثبت تراکنش‌ها
+            this.addTransaction('دریافت پاداش USDT', -usdtToClaim, 'usdt');
+            this.addTransaction('تبدیل SOD به USDT', -sodNeeded, 'sod');
+            
+            // نوتیفیکیشن
+            this.showNotification(
+                '✅ پاداش دریافت شد!', 
+                `${usdtToClaim.toFixed(4)} USDT دریافت کردید.\n` +
+                `${this.formatNumber(sodNeeded)} SOD از موجودی کسر شد.`
+            );
+            
+            // آپدیت UI
+            this.updateUI();
+            
+        } catch (error) {
+            console.error('❌ USDT claim error:', error);
+            this.showNotification('خطا', 'مشکلی در دریافت پاداش پیش آمد');
+        }
+    }
+    
+    boostMining() {
+        if (!this.user || !this.gameData) {
+            this.showNotification('خطا', 'لطفاً ابتدا وارد حساب خود شوید');
+            return;
+        }
+        
+        const cost = 5000; // هزینه افزایش قدرت
+        
+        if (this.gameData.sod_balance < cost) {
+            this.showNotification('موجودی ناکافی', `برای افزایش قدرت به ${cost} SOD نیاز دارید.`);
+            return;
+        }
+        
+        try {
+            console.log('⚡ Activating mining boost');
+            
+            // کسر هزینه
+            this.gameData.sod_balance -= cost;
+            this.gameData.boost_active = true;
+            this.gameData.boost_end_time = Date.now() + (30 * 60 * 1000); // 30 دقیقه
+            
+            // ذخیره
+            this.saveToLocalStorage();
+            
+            // ثبت تراکنش
+            this.addTransaction('خرید افزایش قدرت', -cost, 'sod');
+            
+            // نوتیفیکیشن
+            this.showNotification(
+                '⚡ افزایش قدرت فعال شد!', 
+                'قدرت استخراج شما ۳ برابر شد.\nمدت زمان: ۳۰ دقیقه'
+            );
+            
+            // تایمر پایان بوست
+            setTimeout(() => {
+                if (this.gameData) {
+                    this.gameData.boost_active = false;
+                    this.saveToLocalStorage();
+                    this.showNotification('پایان بوست', 'زمان افزایش قدرت به پایان رسید.');
+                    this.updateUI();
+                }
+            }, 30 * 60 * 1000);
+            
+            // آپدیت UI
+            this.updateUI();
+            
+        } catch (error) {
+            console.error('❌ Boost error:', error);
+            this.showNotification('خطا', 'مشکلی در فعال‌سازی افزایش قدرت پیش آمد');
+        }
+    }
+    
+    async toggleAutoMine() {
+        if (!this.user || !this.gameData) {
+            this.showNotification('خطا', 'لطفاً ابتدا وارد حساب خود شوید');
+            return;
+        }
+        
+        // اگر در حال اجراست، متوقف کن
+        if (this.autoMineInterval) {
+            clearInterval(this.autoMineInterval);
+            this.autoMineInterval = null;
+            
+            this.showNotification('⏸️ استخراج خودکار متوقف شد', 'سیاست استخراج خودکار غیرفعال شد.');
+            this.updateAutoMineButton();
+            return;
+        }
+        
+        // بررسی حداقل موجودی
+        const minBalance = 1000000;
+        if (this.gameData.sod_balance < minBalance) {
+            this.showNotification(
+                'موجودی ناکافی', 
+                `برای فعال کردن استخراج خودکار حداقل ${this.formatNumber(minBalance)} SOD نیاز دارید.`
+            );
+            return;
+        }
+        
+        // شروع استخراج خودکار
+        console.log('🤖 Starting auto-mining');
+        
+        this.autoMineInterval = setInterval(async () => {
+            if (!this.gameData) return;
+            
+            const baseEarned = Math.floor((this.gameData.mining_power || 10) * 0.5);
+            const boostMultiplier = this.gameData.boost_active ? 3 : 1;
+            const totalEarned = baseEarned * boostMultiplier;
+            
+            this.gameData.sod_balance += totalEarned;
+            this.gameData.total_mined += totalEarned;
+            this.gameData.today_earnings += totalEarned;
+            this.gameData.usdt_progress += totalEarned;
+            
+            this.saveToLocalStorage();
+            this.updateUI();
+            
+            // چک پاداش USDT هر 10 ثانیه
+            if (Math.random() < 0.1) {
+                await this.checkUSDT();
+            }
+            
+        }, 1000); // هر ثانیه
+        
+        this.showNotification('🤖 استخراج خودکار فعال شد', 'سیستم در حال استخراج خودکار است.');
+        this.updateAutoMineButton();
     }
     
     // ==================== UI FUNCTIONS ====================
@@ -736,14 +859,15 @@ class SODmaxGame {
             this.formatNumber(this.gameData.usdt_progress || 0) + ' / ۱۰,۰۰۰,۰۰۰ SOD (۰.۰۱ USDT)'
         );
         
-        // نمایش لینک ادمین
+        // آخرین دریافت
+        this.updateLastClaimTime();
+        
+        // دکمه‌ها
+        this.updateAutoMineButton();
         this.showAdminLink();
         
-        // آپدیت دکمه استخراج خودکار
-        this.updateAutoMineButton();
-        
-        // آپدیت آخرین زمان دریافت
-        this.updateLastClaimTime();
+        // تراکنش‌ها
+        this.renderTransactions();
         
         console.log('✅ UI updated');
     }
@@ -751,29 +875,45 @@ class SODmaxGame {
     updateElement(id, content) {
         const element = document.getElementById(id);
         if (element) {
-            if (typeof content === 'string' && content.includes('<')) {
-                element.innerHTML = content;
-            } else {
-                element.textContent = content;
-            }
+            element.innerHTML = content;
         }
     }
     
     updateLastClaimTime() {
-        const lastClaimElement = document.getElementById('lastClaimTime');
-        if (!lastClaimElement) return;
+        const element = document.getElementById('lastClaimTime');
+        if (!element) return;
         
-        // پیدا کردن آخرین تراکنش USDT
-        const lastUSDTTransaction = this.transactions.find(tx => 
-            tx.type === 'usdt' && tx.description.includes('دریافت پاداش')
+        const lastTransaction = this.transactions.find(t => 
+            t.type === 'usdt' && t.description.includes('دریافت پاداش')
         );
         
-        if (lastUSDTTransaction) {
-            const date = new Date(lastUSDTTransaction.created_at);
-            lastClaimElement.textContent = date.toLocaleDateString('fa-IR') + ' ' + 
-                                         date.toLocaleTimeString('fa-IR');
+        if (lastTransaction) {
+            const date = new Date(lastTransaction.created_at);
+            element.textContent = date.toLocaleDateString('fa-IR') + ' ' + 
+                                 date.toLocaleTimeString('fa-IR');
         } else {
-            lastClaimElement.textContent = 'هنوز دریافت نکرده‌اید';
+            element.textContent = 'هنوز دریافت نکرده‌اید';
+        }
+    }
+    
+    updateAutoMineButton() {
+        const button = document.getElementById('autoMineBtn');
+        if (!button) return;
+        
+        if (this.autoMineInterval) {
+            button.innerHTML = '<i class="fas fa-pause"></i> توقف خودکار';
+            button.style.background = 'var(--error)';
+        } else {
+            button.innerHTML = '<i class="fas fa-robot"></i> استخراج خودکار';
+            button.style.background = '';
+            
+            // بررسی حداقل موجودی
+            if (this.gameData && this.gameData.sod_balance < 1000000) {
+                button.disabled = true;
+                button.innerHTML = '<i class="fas fa-robot"></i> نیاز به ۱M SOD';
+            } else {
+                button.disabled = false;
+            }
         }
     }
     
@@ -785,6 +925,7 @@ class SODmaxGame {
             container.innerHTML = `
                 <div class="transaction-row">
                     <div style="text-align: center; padding: 20px; color: var(--text-secondary);">
+                        <i class="fas fa-history"></i><br>
                         هنوز تراکنشی ثبت نشده است
                     </div>
                 </div>
@@ -794,30 +935,42 @@ class SODmaxGame {
         
         container.innerHTML = this.transactions.map(tx => {
             const date = new Date(tx.created_at);
-            const timeString = date.toLocaleTimeString('fa-IR', { hour: '2-digit', minute: '2-digit' });
+            const timeString = date.toLocaleTimeString('fa-IR', { 
+                hour: '2-digit', 
+                minute: '2-digit' 
+            });
             const dateString = date.toLocaleDateString('fa-IR');
             
-            const icon = tx.type === 'usdt' ? '💰' : 
-                        tx.description.includes('خرید') ? '🛒' : 
-                        tx.amount < 0 ? '📤' : '⛏️';
+            // انتخاب آیکون مناسب
+            let icon = '⛏️';
+            if (tx.type === 'usdt') icon = '💰';
+            if (tx.description.includes('خرید')) icon = '🛒';
+            if (tx.amount < 0) icon = '📤';
+            if (tx.description.includes('هدیه')) icon = '🎁';
             
+            // انتخاب رنگ
             const color = tx.amount > 0 ? 'var(--success)' : 'var(--error)';
             const sign = tx.amount > 0 ? '+' : '';
-            const amountText = tx.type === 'usdt' 
-                ? `${sign}${Math.abs(tx.amount).toFixed(4)} USDT`
-                : `${sign}${this.formatNumber(tx.amount)} SOD`;
+            
+            // فرمت مقدار
+            let amountText;
+            if (tx.type === 'usdt') {
+                amountText = `${sign}${Math.abs(tx.amount).toFixed(4)} USDT`;
+            } else {
+                amountText = `${sign}${this.formatNumber(tx.amount)} SOD`;
+            }
             
             return `
                 <div class="transaction-row">
                     <div class="transaction-type">
                         <div class="transaction-icon">${icon}</div>
                         <div style="flex: 1;">
-                            <div style="font-weight: bold;">${tx.description}</div>
-                            <div style="color: var(--text-secondary); font-size: 12px;">
+                            <div style="font-weight: bold; font-size: 13px;">${tx.description}</div>
+                            <div style="color: var(--text-secondary); font-size: 11px;">
                                 ${dateString} - ${timeString}
                             </div>
                         </div>
-                        <div style="font-weight: bold; color: ${color}">
+                        <div style="font-weight: 900; color: ${color}; font-size: 14px;">
                             ${amountText}
                         </div>
                     </div>
@@ -828,17 +981,14 @@ class SODmaxGame {
     
     renderSalePlans() {
         const grid = document.getElementById('salePlansGrid');
-        if (!grid) {
-            console.warn('⚠️ Sale plans grid not found');
-            return;
-        }
+        if (!grid) return;
         
         const plans = [
             {
                 id: 1,
                 name: "پنل استارتر",
-                usdtPrice: 1,
-                sodAmount: 5000000,
+                price: 1,
+                sod: 5000000,
                 bonus: 500000,
                 features: [
                     "۵,۰۰۰,۰۰۰ SOD",
@@ -853,8 +1003,8 @@ class SODmaxGame {
             {
                 id: 2,
                 name: "پنل پرو",
-                usdtPrice: 5,
-                sodAmount: 30000000,
+                price: 5,
+                sod: 30000000,
                 bonus: 3000000,
                 features: [
                     "۳۰,۰۰۰,۰۰۰ SOD",
@@ -870,8 +1020,8 @@ class SODmaxGame {
             {
                 id: 3,
                 name: "پنل پلاتینیوم",
-                usdtPrice: 15,
-                sodAmount: 100000000,
+                price: 15,
+                sod: 100000000,
                 bonus: 10000000,
                 features: [
                     "۱۰۰,۰۰۰,۰۰۰ SOD",
@@ -888,8 +1038,8 @@ class SODmaxGame {
             {
                 id: 4,
                 name: "پنل الماس",
-                usdtPrice: 50,
-                sodAmount: 500000000,
+                price: 50,
+                sod: 500000000,
                 bonus: 50000000,
                 features: [
                     "۵۰۰,۰۰۰,۰۰۰ SOD",
@@ -908,26 +1058,29 @@ class SODmaxGame {
         ];
         
         grid.innerHTML = plans.map(plan => {
-            const totalSOD = plan.sodAmount + plan.bonus;
+            const totalSOD = plan.sod + plan.bonus;
             
             return `
                 <div class="sale-plan-card ${plan.popular ? 'featured' : ''}">
                     ${plan.popular ? `<div class="sale-plan-badge">پیشنهاد ویژه</div>` : ''}
-                    ${plan.discount > 0 ? `<div style="position: absolute; top: 16px; right: 16px;"><span class="discount-badge">${plan.discount}% تخفیف</span></div>` : ''}
+                    ${plan.discount > 0 ? `
+                        <div style="position: absolute; top: 16px; right: 16px;">
+                            <span class="discount-badge">${plan.discount}% تخفیف</span>
+                        </div>
+                    ` : ''}
                     
                     <div class="sale-plan-header">
                         <h3 class="sale-plan-name">${plan.name}</h3>
-                        <div class="sale-plan-price">${plan.usdtPrice} <span>USDT</span></div>
+                        <div class="sale-plan-price">${plan.price} <span>USDT</span></div>
                         <div class="sod-amount">${this.formatNumber(totalSOD)} SOD</div>
                     </div>
                     
                     <ul class="sale-plan-features">
-                        ${plan.features.map(feature => `<li><i class="fas fa-check" style="color: var(--success);"></i> ${feature}</li>`).join('')}
+                        ${plan.features.map(f => `<li><i class="fas fa-check" style="color: var(--success);"></i> ${f}</li>`).join('')}
                     </ul>
                     
                     <button class="btn ${plan.popular ? 'btn-warning' : 'btn-primary'}" 
-                            onclick="window.gameInstance.buySODPlan(${plan.id})"
-                            data-plan-id="${plan.id}">
+                            onclick="window.gameInstance.buySODPlan(${plan.id})">
                         <i class="fas fa-shopping-cart"></i>
                         خرید پنل
                     </button>
@@ -936,15 +1089,200 @@ class SODmaxGame {
         }).join('');
     }
     
+    showSODSale() {
+        const section = document.getElementById('sodSaleSection');
+        if (section) {
+            section.style.display = 'block';
+            section.scrollIntoView({ 
+                behavior: 'smooth',
+                block: 'start'
+            });
+        }
+    }
+    
+    // ==================== UI CONTROLS ====================
+    
+    showMainPage() {
+        const loginPage = document.getElementById('registerOverlay');
+        const mainPage = document.getElementById('mainContainer');
+        
+        if (loginPage) loginPage.style.display = 'none';
+        if (mainPage) mainPage.style.display = 'block';
+        
+        console.log('📱 Main page displayed');
+    }
+    
+    showLoginPage() {
+        const loginPage = document.getElementById('registerOverlay');
+        const mainPage = document.getElementById('mainContainer');
+        
+        if (loginPage) loginPage.style.display = 'flex';
+        if (mainPage) mainPage.style.display = 'none';
+        
+        console.log('🔐 Login page displayed');
+    }
+    
+    addTestButtons() {
+        const loginContainer = document.getElementById('registerOverlay');
+        if (!loginContainer) return;
+        
+        // حذف دکمه‌های قبلی
+        const oldButtons = loginContainer.querySelector('.test-buttons');
+        if (oldButtons) oldButtons.remove();
+        
+        // ایجاد دکمه‌های تست
+        const buttonContainer = document.createElement('div');
+        buttonContainer.className = 'test-buttons';
+        buttonContainer.style.cssText = `
+            margin-top: 25px;
+            padding: 20px;
+            background: rgba(0,0,0,0.3);
+            border-radius: 12px;
+            border: 1px solid var(--glass-border);
+        `;
+        
+        buttonContainer.innerHTML = `
+            <div style="color: var(--text-secondary); font-size: 12px; margin-bottom: 15px; text-align: center;">
+                <i class="fas fa-bolt"></i> ورود سریع برای تست:
+            </div>
+            
+            <div style="display: flex; flex-direction: column; gap: 12px;">
+                <button onclick="window.gameInstance.quickLogin('test@example.com', '123456')" 
+                        style="padding: 14px; background: var(--primary); color: white; 
+                               border: none; border-radius: 10px; cursor: pointer; font-weight: 600;
+                               display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <i class="fas fa-user"></i>
+                    ورود با کاربر تست (1M SOD)
+                </button>
+                
+                <button onclick="window.gameInstance.quickLogin('hamyarhf@gmail.com', 'admin123')" 
+                        style="padding: 14px; background: var(--accent); color: white; 
+                               border: none; border-radius: 10px; cursor: pointer; font-weight: 600;
+                               display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <i class="fas fa-user-shield"></i>
+                    ورود با ادمین (5M SOD)
+                </button>
+                
+                <button onclick="window.gameInstance.register('new@user.com', '123456', 'کاربر جدید')" 
+                        style="padding: 14px; background: var(--secondary); color: white; 
+                               border: none; border-radius: 10px; cursor: pointer; font-weight: 600;
+                               display: flex; align-items: center; justify-content: center; gap: 10px;">
+                    <i class="fas fa-user-plus"></i>
+                    ایجاد کاربر جدید
+                </button>
+            </div>
+            
+            <div style="margin-top: 15px; padding: 10px; background: rgba(255,255,255,0.05); 
+                        border-radius: 8px; text-align: center; font-size: 11px; color: var(--text-secondary);">
+                <div style="margin-bottom: 5px;">🎮 دستورات دیباگ در کنسول:</div>
+                <div style="font-family: monospace; font-size: 10px; color: var(--primary-light);">
+                    debugGame() - نمایش وضعیت<br>
+                    resetGame() - ریست کامل
+                </div>
+            </div>
+        `;
+        
+        // اضافه کردن به صفحه
+        const registerContainer = loginContainer.querySelector('.register-container');
+        if (registerContainer) {
+            registerContainer.appendChild(buttonContainer);
+        }
+    }
+    
+    addEmergencyButtons() {
+        // دکمه‌های اضطراری در صفحه اصلی
+        const mainContainer = document.getElementById('mainContainer');
+        if (!mainContainer) return;
+        
+        const emergencyDiv = document.createElement('div');
+        emergencyDiv.style.cssText = `
+            position: fixed;
+            bottom: 20px;
+            left: 20px;
+            z-index: 9999;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        `;
+        
+        emergencyDiv.innerHTML = `
+            <button onclick="window.gameInstance.debugGame()" 
+                    style="padding: 10px 15px; background: #FF6B35; color: white; 
+                           border: none; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                🐞 دیباگ
+            </button>
+            <button onclick="window.resetGame()" 
+                    style="padding: 10px 15px; background: #FF3D00; color: white; 
+                           border: none; border-radius: 8px; cursor: pointer; font-size: 12px;">
+                🔄 ریست
+            </button>
+        `;
+        
+        mainContainer.appendChild(emergencyDiv);
+    }
+    
+    showLoadingMessage(message) {
+        const loadingDiv = document.createElement('div');
+        loadingDiv.id = 'gameLoading';
+        loadingDiv.style.cssText = `
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(5, 9, 20, 0.95);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            z-index: 9999;
+            color: white;
+            font-size: 16px;
+        `;
+        
+        loadingDiv.innerHTML = `
+            <div style="width: 60px; height: 60px; border: 4px solid var(--primary);
+                        border-top-color: transparent; border-radius: 50%;
+                        animation: spin 1s linear infinite; margin-bottom: 20px;"></div>
+            <div>${message}</div>
+            <div style="margin-top: 20px; font-size: 12px; color: var(--text-secondary);">
+                SODmAX Pro در حال راه‌اندازی...
+            </div>
+        `;
+        
+        document.body.appendChild(loadingDiv);
+        
+        // اضافه کردن استایل انیمیشن
+        if (!document.querySelector('#loading-styles')) {
+            const style = document.createElement('style');
+            style.id = 'loading-styles';
+            style.textContent = `
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+        }
+    }
+    
+    hideLoadingMessage() {
+        const loadingDiv = document.getElementById('gameLoading');
+        if (loadingDiv) {
+            loadingDiv.remove();
+        }
+    }
+    
+    // ==================== HELPER FUNCTIONS ====================
+    
     createMiningEffect(amount) {
         const effect = document.createElement('div');
         effect.textContent = '+' + this.formatNumber(amount);
-        effect.className = 'mining-effect';
         effect.style.cssText = `
             position: fixed;
             color: #0066FF;
             font-weight: 900;
-            font-size: 20px;
+            font-size: 24px;
             pointer-events: none;
             z-index: 10000;
             text-shadow: 0 0 10px rgba(0, 102, 255, 0.7);
@@ -957,31 +1295,45 @@ class SODmaxGame {
             const rect = miner.getBoundingClientRect();
             effect.style.left = (rect.left + rect.width / 2) + 'px';
             effect.style.top = (rect.top + rect.height / 2) + 'px';
-        } else {
-            effect.style.left = '50%';
-            effect.style.top = '50%';
         }
         
         document.body.appendChild(effect);
         
+        // حذف بعد از انیمیشن
         setTimeout(() => effect.remove(), 1000);
-    }
-    
-    formatNumber(num) {
-        if (!num && num !== 0) return '0';
-        
-        const n = Math.abs(Number(num));
-        if (n >= 1000000000) return (n / 1000000000).toFixed(2) + 'B';
-        if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
-        if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
-        return Math.floor(n).toLocaleString('fa-IR');
     }
     
     showNotification(title, message) {
         const notification = document.getElementById('notification');
         if (!notification) {
-            // اگر نوتیفیکیشن وجود نداشت، ایجاد کن
-            console.log('📢 ' + title + ': ' + message);
+            // ایجاد نوتیفیکیشن موقت
+            const tempNotification = document.createElement('div');
+            tempNotification.style.cssText = `
+                position: fixed;
+                top: 20px;
+                right: 20px;
+                background: linear-gradient(135deg, var(--primary), var(--secondary));
+                color: white;
+                padding: 15px 20px;
+                border-radius: 10px;
+                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                z-index: 10000;
+                max-width: 300px;
+                animation: slideIn 0.3s ease;
+            `;
+            
+            tempNotification.innerHTML = `
+                <div style="font-weight: bold; margin-bottom: 5px; font-size: 14px;">${title}</div>
+                <div style="font-size: 13px;">${message}</div>
+            `;
+            
+            document.body.appendChild(tempNotification);
+            
+            setTimeout(() => {
+                tempNotification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => tempNotification.remove(), 300);
+            }, 4000);
+            
             return;
         }
         
@@ -998,24 +1350,14 @@ class SODmaxGame {
         }, 4000);
     }
     
-    showMainPage() {
-        const loginPage = document.getElementById('registerOverlay');
-        const mainPage = document.getElementById('mainContainer');
+    formatNumber(num) {
+        if (num === null || num === undefined) return '0';
         
-        if (loginPage) loginPage.style.display = 'none';
-        if (mainPage) mainPage.style.display = 'block';
-        
-        console.log('📱 Showing main page');
-    }
-    
-    showLoginPage() {
-        const loginPage = document.getElementById('registerOverlay');
-        const mainPage = document.getElementById('mainContainer');
-        
-        if (loginPage) loginPage.style.display = 'flex';
-        if (mainPage) mainPage.style.display = 'none';
-        
-        console.log('🔐 Showing login page');
+        const n = Math.abs(Number(num));
+        if (n >= 1000000000) return (n / 1000000000).toFixed(2) + 'B';
+        if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+        if (n >= 1000) return (n / 1000).toFixed(1) + 'K';
+        return Math.floor(n).toLocaleString('fa-IR');
     }
     
     checkAdminStatus() {
@@ -1024,7 +1366,7 @@ class SODmaxGame {
         const adminEmails = [
             'hamyarhf@gmail.com',
             'admin@sodmax.com',
-            'test@example.com'
+            'admin@example.com'
         ];
         
         // بررسی از userInfo
@@ -1034,7 +1376,7 @@ class SODmaxGame {
             this.isAdmin = adminEmails.includes(this.user.email.toLowerCase());
         }
         
-        console.log(`👑 Admin status: ${this.isAdmin ? 'YES' : 'NO'}`);
+        console.log(`👑 Admin: ${this.isAdmin ? 'YES' : 'NO'}`);
     }
     
     showAdminLink() {
@@ -1043,30 +1385,6 @@ class SODmaxGame {
             adminLink.style.display = this.isAdmin ? 'flex' : 'none';
         }
     }
-    
-    updateAutoMineButton() {
-        const autoBtn = document.getElementById('autoMineBtn');
-        if (!autoBtn) return;
-        
-        if (this.autoMineInterval) {
-            autoBtn.innerHTML = '<i class="fas fa-pause"></i> توقف خودکار';
-            autoBtn.style.background = 'var(--error)';
-            autoBtn.disabled = false;
-        } else {
-            autoBtn.innerHTML = '<i class="fas fa-robot"></i> استخراج خودکار';
-            autoBtn.style.background = '';
-            
-            // غیرفعال کردن اگر موجودی کافی نیست
-            if (this.gameData && this.gameData.sod_balance < 1000000) {
-                autoBtn.disabled = true;
-                autoBtn.innerHTML = '<i class="fas fa-robot"></i> نیاز به ۱M SOD';
-            } else {
-                autoBtn.disabled = false;
-            }
-        }
-    }
-    
-    // ==================== EVENT LISTENERS ====================
     
     setupEventListeners() {
         console.log('🎯 Setting up event listeners...');
@@ -1090,16 +1408,16 @@ class SODmaxGame {
         }
         
         // دکمه خرید SOD
-        const buySODBtn = document.querySelector('[onclick="showSODSale()"]');
-        if (buySODBtn) {
-            buySODBtn.addEventListener('click', (e) => {
+        const buyButtons = document.querySelectorAll('[onclick*="showSODSale"]');
+        buyButtons.forEach(btn => {
+            btn.addEventListener('click', (e) => {
                 e.preventDefault();
                 this.showSODSale();
             });
-        }
+        });
         
         // دکمه افزایش قدرت
-        const boostBtn = document.querySelector('[onclick="boostMining()"]');
+        const boostBtn = document.querySelector('[onclick*="boostMining"]');
         if (boostBtn) {
             boostBtn.addEventListener('click', (e) => {
                 e.preventDefault();
@@ -1110,105 +1428,59 @@ class SODmaxGame {
         console.log('✅ Event listeners setup complete');
     }
     
-    showSODSale() {
-        const saleSection = document.getElementById('sodSaleSection');
-        if (saleSection) {
-            saleSection.style.display = 'block';
-            saleSection.scrollIntoView({ 
-                behavior: 'smooth',
-                block: 'start'
-            });
-        }
-    }
-    
-    boostMining() {
-        if (!this.gameData) return;
-        
-        const cost = 5000;
-        if (this.gameData.sod_balance >= cost) {
-            this.gameData.sod_balance -= cost;
-            this.gameData.boost_active = true;
-            this.gameData.boost_end_time = Date.now() + (30 * 60 * 1000); // 30 دقیقه
-            
-            localStorage.setItem('sodmax_game', JSON.stringify(this.gameData));
-            
-            this.addTransaction('خرید افزایش قدرت', -cost, 'sod');
-            
-            this.showNotification('⚡ افزایش قدرت', 'قدرت استخراج شما ۳ برابر شد! (۳۰ دقیقه)');
-            
-            // تایمر پایان بوست
-            setTimeout(() => {
-                if (this.gameData) {
-                    this.gameData.boost_active = false;
-                    localStorage.setItem('sodmax_game', JSON.stringify(this.gameData));
-                    this.showNotification('پایان بوست', 'زمان افزایش قدرت به پایان رسید.');
-                    this.updateUI();
-                }
-            }, 30 * 60 * 1000);
-            
-            this.updateUI();
-            
-        } else {
-            this.showNotification('⚠️ موجودی کافی نیست', 'برای افزایش قدرت به ۵۰۰۰ SOD نیاز دارید.');
-        }
-    }
-    
-    async toggleAutoMine() {
-        if (!this.gameData) return;
-        
-        if (this.autoMineInterval) {
-            clearInterval(this.autoMineInterval);
-            this.autoMineInterval = null;
-            this.showNotification('⏸️ توقف خودکار', 'استخراج خودکار متوقف شد.');
-            this.updateAutoMineButton();
-            return;
-        }
-        
-        if (this.gameData.sod_balance < 1000000) {
-            this.showNotification('⚠️ موجودی ناکافی', 'برای فعال کردن استخراج خودکار حداقل ۱ میلیون SOD نیاز دارید.');
-            return;
-        }
-        
-        this.autoMineInterval = setInterval(async () => {
-            if (!this.gameData) return;
-            
-            const earned = Math.floor((this.gameData.mining_power || 10) * 0.5);
-            const boostMultiplier = this.gameData.boost_active ? 3 : 1;
-            const totalEarned = earned * boostMultiplier;
-            
-            this.gameData.sod_balance += totalEarned;
-            this.gameData.total_mined += totalEarned;
-            this.gameData.today_earnings += totalEarned;
-            this.gameData.usdt_progress += totalEarned;
-            
-            this.updateUI();
-            await this.checkUSDT();
-            
-        }, 1000); // هر ثانیه
-        
-        this.showNotification('🤖 استخراج خودکار', 'سیستم استخراج خودکار فعال شد.');
-        this.updateAutoMineButton();
-    }
-    
     startAutoSave() {
         this.autoSaveInterval = setInterval(() => {
             if (this.user && this.gameData) {
-                try {
-                    localStorage.setItem('sodmax_game', JSON.stringify(this.gameData));
-                    console.log('💾 Auto-saved game data');
-                } catch (error) {
-                    console.error('❌ Auto-save error:', error);
-                }
+                this.saveToLocalStorage();
             }
         }, 30000); // هر 30 ثانیه
         
-        console.log('💾 Auto-save started');
+        console.log('💾 Auto-save enabled');
+    }
+    
+    // ==================== DEBUG & UTILITY ====================
+    
+    debugGame() {
+        console.log('=== 🐞 SODmAX DEBUG INFO ===');
+        console.log('Game State:', {
+            isInitialized: this.isInitialized,
+            hasUser: !!this.user,
+            hasGameData: !!this.gameData,
+            userEmail: this.user?.email,
+            sodBalance: this.gameData?.sod_balance,
+            usdtBalance: this.gameData?.usdt_balance,
+            isAdmin: this.isAdmin
+        });
+        
+        console.log('LocalStorage:', {
+            user: localStorage.getItem('sodmax_user') ? '✅ Found' : '❌ Not found',
+            game: localStorage.getItem('sodmax_game') ? '✅ Found' : '❌ Not found',
+            userinfo: localStorage.getItem('sodmax_userinfo') ? '✅ Found' : '❌ Not found',
+            transactions: localStorage.getItem('sodmax_transactions') ? '✅ Found' : '❌ Not found'
+        });
+        
+        console.log('Quick Commands:', [
+            'gameInstance.mine() - استخراج',
+            'gameInstance.buySODPlan(1) - خرید پنل 1',
+            'gameInstance.claimUSDT() - دریافت پاداش',
+            'gameInstance.boostMining() - افزایش قدرت',
+            'gameInstance.toggleAutoMine() - استخراج خودکار'
+        ]);
+    }
+    
+    resetGame() {
+        if (confirm('⚠️ آیا مطمئن هستید که می‌خواهید بازی را ریست کنید؟\nتمام داده‌ها پاک خواهند شد!')) {
+            localStorage.clear();
+            console.log('🗑️ All game data cleared');
+            alert('بازی ریست شد. در حال بارگذاری مجدد...');
+            location.reload();
+        }
     }
 }
 
-// ==================== GLOBAL FUNCTIONS ====================
+// ==================== GLOBAL INSTANCE ====================
 
-// ایجاد نمونه بازی
+// ایجاد نمونه اصلی بازی
 let gameInstance = null;
 
 // تابع‌های عمومی برای دسترسی از HTML
@@ -1217,6 +1489,7 @@ window.loginUser = async function() {
     const password = document.getElementById('authPassword')?.value || '123456';
     
     if (!gameInstance) {
+        console.log('🔄 Creating new game instance...');
         gameInstance = new SODmaxGame();
         await gameInstance.init();
     }
@@ -1279,37 +1552,56 @@ window.boostMining = function() {
     }
 };
 
-// راه‌اندازی بازی
-window.addEventListener('DOMContentLoaded', async () => {
-    console.log('🎮 DOM loaded, starting game...');
+window.debugGame = function() {
+    if (gameInstance) {
+        gameInstance.debugGame();
+    } else {
+        console.log('⚠️ gameInstance not created yet');
+    }
+};
+
+window.resetGame = function() {
+    if (gameInstance) {
+        gameInstance.resetGame();
+    }
+};
+
+// ==================== INITIALIZATION ====================
+
+// راه‌اندازی هنگامی که DOM آماده است
+document.addEventListener('DOMContentLoaded', async () => {
+    console.log('🎮 DOM Content Loaded - Starting SODmAX Pro...');
     
-    gameInstance = new SODmaxGame();
-    await gameInstance.init();
-    
-    console.log('🚀 SODmAX Pro is ready!');
+    try {
+        // ایجاد نمونه بازی
+        gameInstance = new SODmaxGame();
+        
+        // شروع بازی
+        await gameInstance.init();
+        
+        console.log('🚀 SODmAX Pro is fully loaded and ready!');
+        console.log('🔧 Commands available:');
+        console.log('  • debugGame() - نمایش وضعیت بازی');
+        console.log('  • resetGame() - ریست کامل');
+        console.log('  • mineSOD() - استخراج دستی');
+        console.log('  • claimUSDT() - دریافت پاداش');
+        
+        // نمایش پیام خوش‌آمدگویی در کنسول
+        console.log('%c✨ SODmAX Pro Activated ✨', 'color: #0066FF; font-size: 16px; font-weight: bold;');
+        
+    } catch (error) {
+        console.error('❌ Fatal error during initialization:', error);
+        alert('خطای شدید در راه‌اندازی بازی. لطفاً کنسول مرورگر را چک کنید (F12).');
+    }
 });
 
-// ==================== HELPER FUNCTIONS ====================
+// بارگذاری مجدد در صورت خطا
+setTimeout(() => {
+    if (!gameInstance) {
+        console.log('⚠️ Game not initialized after 3 seconds, retrying...');
+        gameInstance = new SODmaxGame();
+        gameInstance.init();
+    }
+}, 3000);
 
-// افزودن استایل‌های لازم برای انیمیشن‌ها
-if (!document.getElementById('game-styles')) {
-    const style = document.createElement('style');
-    style.id = 'game-styles';
-    style.textContent = `
-        @keyframes miningEffect {
-            0% {
-                opacity: 1;
-                transform: translate(0, 0) scale(1);
-            }
-            100% {
-                opacity: 0;
-                transform: translate(0, -100px) scale(1.5);
-            }
-        }
-        
-        .notification.show {
-            transform: translateY(0) !important;
-        }
-    `;
-    document.head.appendChild(style);
-}
+console.log('✅ app-core.js loaded successfully');
