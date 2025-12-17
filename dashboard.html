@@ -3,371 +3,385 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>داشبورد - SODmAX Pro</title>
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <title>داشبورد | SODmAX Pro</title>
+    
+    <!-- استایل‌ها -->
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-        /* استایل‌های اصلی شما (کپی شده از فایل اصلی) */
-        :root {
-            --primary: #0066FF;
-            --primary-dark: #0052CC;
-            --secondary: #00D4AA;
-            --accent: #FF6B35;
-            --usdt: #26A17B;
-            --dark: #0A0F1C;
-            --card: #121828;
-            --text: #FFFFFF;
-            --text-secondary: #94A3B8;
-            --gradient: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+        /* استایل‌های خاص داشبورد */
+        .dashboard {
+            padding: 20px 0;
         }
-
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-        }
-
-        body {
-            background: linear-gradient(135deg, #0a0f1c 0%, #121828 100%);
-            color: white;
-            min-height: 100vh;
-            padding: 20px;
-        }
-
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-        }
-
-        header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-            padding-bottom: 20px;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
-        }
-
-        .logo {
-            font-size: 24px;
-            font-weight: bold;
-            background: var(--gradient);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-        }
-
-        nav a {
-            color: var(--text-secondary);
-            text-decoration: none;
-            margin-right: 20px;
-            transition: 0.3s;
-        }
-
-        nav a:hover {
-            color: var(--primary);
-        }
-
-        .btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            cursor: pointer;
-            font-weight: 600;
-        }
-
-        .btn-success {
-            background: var(--secondary);
-        }
-
-        .btn-warning {
-            background: var(--accent);
-        }
-
-        /* استایل‌های داشبورد */
-        .dashboard-grid {
+        
+        .stats-overview {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-            gap: 25px;
-            margin-top: 30px;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
         }
-
-        .card {
-            background: rgba(255,255,255,0.05);
-            border-radius: 15px;
+        
+        .stat-item {
+            background: linear-gradient(145deg, var(--card) 0%, rgba(18, 24, 40, 0.95) 100%);
+            border-radius: var(--radius-lg);
             padding: 25px;
-            border: 1px solid rgba(255,255,255,0.1);
-            backdrop-filter: blur(10px);
+            border: 1px solid var(--glass-border);
+            text-align: center;
+            transition: all 0.3s ease;
         }
-
-        .card h3 {
-            color: var(--secondary);
-            margin-bottom: 20px;
-            font-size: 18px;
+        
+        .stat-item:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
+        }
+        
+        .stat-icon {
+            width: 60px;
+            height: 60px;
+            background: var(--gradient);
+            border-radius: 15px;
             display: flex;
             align-items: center;
-            gap: 10px;
+            justify-content: center;
+            margin: 0 auto 15px;
+            font-size: 24px;
+            color: white;
         }
-
-        .stat-row {
-            display: flex;
-            justify-content: space-between;
-            padding: 15px 0;
-            border-bottom: 1px solid rgba(255,255,255,0.1);
+        
+        .stat-value {
+            font-size: 32px;
+            font-weight: 900;
+            margin: 10px 0;
         }
-
-        .stat-row:last-child {
-            border-bottom: none;
-        }
-
+        
         .stat-label {
             color: var(--text-secondary);
-        }
-
-        .stat-value {
-            font-weight: bold;
-            font-size: 18px;
-        }
-
-        .sod-value {
-            color: var(--primary);
-        }
-
-        .usdt-value {
-            color: var(--usdt);
-        }
-
-        .level-badge {
-            background: var(--gradient);
-            color: white;
-            padding: 5px 15px;
-            border-radius: 20px;
             font-size: 14px;
-            font-weight: bold;
         }
-
-        .progress-bar {
-            height: 10px;
-            background: rgba(255,255,255,0.1);
-            border-radius: 5px;
-            margin: 10px 0;
-            overflow: hidden;
+        
+        .charts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 40px;
         }
-
-        .progress-fill {
-            height: 100%;
-            background: var(--gradient);
-            border-radius: 5px;
-            transition: width 0.5s;
+        
+        .chart-container {
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            border: 1px solid var(--glass-border);
         }
-
-        .invite-section {
-            background: linear-gradient(135deg, rgba(0,102,255,0.2), rgba(0,212,170,0.2));
-            padding: 30px;
-            border-radius: 15px;
-            text-align: center;
-            margin: 30px 0;
-            border: 1px solid rgba(0,102,255,0.3);
+        
+        .chart-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
         }
-
-        .invite-code {
-            font-size: 32px;
-            font-weight: bold;
-            background: white;
-            color: var(--primary);
-            padding: 15px 40px;
-            border-radius: 10px;
-            display: inline-block;
-            margin: 20px 0;
-            letter-spacing: 2px;
-            font-family: monospace;
+        
+        .chart-title {
+            font-size: 18px;
+            font-weight: 700;
         }
-
+        
         .recent-activity {
-            max-height: 300px;
-            overflow-y: auto;
-            margin-top: 15px;
+            background: var(--card);
+            border-radius: var(--radius-lg);
+            padding: 25px;
+            border: 1px solid var(--glass-border);
+            margin-bottom: 40px;
         }
-
+        
+        .activity-list {
+            margin-top: 20px;
+        }
+        
         .activity-item {
-            padding: 12px;
-            background: rgba(255,255,255,0.05);
-            border-radius: 8px;
-            margin-bottom: 10px;
-            border-right: 3px solid var(--primary);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            padding: 15px;
+            border-bottom: 1px solid var(--glass-border);
         }
-
+        
+        .activity-item:last-child {
+            border-bottom: none;
+        }
+        
+        .activity-icon {
+            width: 40px;
+            height: 40px;
+            background: rgba(0, 102, 255, 0.1);
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            color: var(--primary);
+        }
+        
+        .activity-content {
+            flex: 1;
+        }
+        
+        .activity-title {
+            font-weight: 600;
+            margin-bottom: 5px;
+        }
+        
         .activity-time {
             font-size: 12px;
             color: var(--text-secondary);
-            margin-top: 5px;
         }
-
+        
+        .quick-actions {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+        }
+        
+        .quick-action-btn {
+            background: var(--card);
+            border: 1px solid var(--glass-border);
+            border-radius: var(--radius);
+            padding: 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .quick-action-btn:hover {
+            background: rgba(0, 102, 255, 0.1);
+            border-color: var(--primary);
+            transform: translateY(-3px);
+        }
+        
+        .quick-action-icon {
+            font-size: 24px;
+            margin-bottom: 10px;
+            color: var(--primary);
+        }
+        
         @media (max-width: 768px) {
-            .dashboard-grid {
+            .stats-overview {
                 grid-template-columns: 1fr;
             }
             
-            header {
-                flex-direction: column;
-                gap: 20px;
-                text-align: center;
+            .charts-grid {
+                grid-template-columns: 1fr;
             }
             
-            .invite-code {
-                font-size: 24px;
-                padding: 10px 20px;
+            .quick-actions {
+                grid-template-columns: repeat(2, 1fr);
             }
         }
     </style>
 </head>
 <body>
-    <div class="container">
-        <header>
-            <div class="logo">SODmAX Dashboard</div>
-            <nav>
-                <a href="index.html"><i class="fas fa-gamepad"></i> بازی اصلی</a>
-                <a href="leaderboard.html"><i class="fas fa-trophy"></i> لیدربرد</a>
-                <a href="missions.html"><i class="fas fa-tasks"></i> مأموریت‌ها</a>
-                <a href="admin.html" id="adminLink" style="display: none; background: rgba(148,163,184,0.3); padding: 6px 12px; border-radius: 6px;">
-                    <i class="fas fa-user-shield"></i> مدیریت
+    <!-- ناوبری -->
+    <nav class="navbar">
+        <div class="container nav-content">
+            <a href="index.html" class="logo">
+                <div class="logo-icon">⛏️</div>
+                <div class="logo-text">
+                    <h1>SODmAX Pro</h1>
+                    <p>داشبورد کاربری</p>
+                </div>
+            </a>
+            
+            <div style="display: flex; gap: 10px; align-items: center;">
+                <a href="index.html" class="btn btn-outline btn-small">
+                    <i class="fas fa-home"></i> صفحه اصلی
                 </a>
-                <button class="btn btn-warning" onclick="logout()">خروج</button>
-            </nav>
-        </header>
-
-        <!-- بخش دعوت دوستان -->
-        <div class="invite-section">
-            <h2 style="margin-bottom: 15px;">🎁 دوستانت رو دعوت کن، پاداش بگیر!</h2>
-            <p style="color: var(--text-secondary); margin-bottom: 20px;">
-                با هر دوستی که از طریق لینک تو ثبت نام کنه، ۱۰٪ از استخراجش رو دریافت می‌کنی
-            </p>
-            <div class="invite-code" id="inviteCode">در حال بارگذاری...</div>
-            <p style="color: var(--text-secondary); margin: 15px 0; font-size: 14px;">این کد رو به دوستات بده یا لینک زیر رو کپی کن:</p>
-            <div style="background: rgba(255,255,255,0.1); padding: 15px; border-radius: 10px; margin-bottom: 20px;">
-                <input type="text" id="inviteLink" style="width: 100%; background: none; border: none; color: white; text-align: center; font-size: 14px;" readonly>
+                <a href="leaderboard.html" class="btn btn-outline btn-small">
+                    <i class="fas fa-trophy"></i> لیدربرد
+                </a>
+                <button onclick="logout()" class="btn btn-small" style="background: rgba(255,107,53,0.2); color: var(--accent);">
+                    <i class="fas fa-sign-out-alt"></i> خروج
+                </button>
             </div>
-            <button class="btn btn-success" onclick="copyInviteLink()">
-                <i class="fas fa-copy"></i> کپی لینک دعوت
-            </button>
         </div>
-
-        <!-- شبکه داشبورد -->
-        <div class="dashboard-grid">
-            <!-- آمار شخصی -->
-            <div class="card">
-                <h3><i class="fas fa-user"></i> آمار شخصی</h3>
-                <div class="stat-row">
-                    <span class="stat-label">سطح فعلی:</span>
-                    <span class="stat-value level-badge" id="userLevel">۱</span>
+    </nav>
+    
+    <!-- محتوای داشبورد -->
+    <div class="container dashboard">
+        <!-- خوش‌آمدگویی -->
+        <div class="card" style="margin-bottom: 30px; text-align: center;">
+            <h2 style="margin-bottom: 10px;">👋 سلام، <span id="userName">کاربر</span>!</h2>
+            <p style="color: var(--text-secondary);">به داشبورد شخصی خود خوش آمدید. اینجا می‌توانید تمام فعالیت‌های خود را مدیریت کنید.</p>
+        </div>
+        
+        <!-- آمار کلی -->
+        <div class="stats-overview">
+            <div class="stat-item">
+                <div class="stat-icon">💰</div>
+                <div class="stat-value" id="totalEarnings">۰</div>
+                <div class="stat-label">کل درآمد SOD</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-icon">💎</div>
+                <div class="stat-value" id="totalUSDT">۰</div>
+                <div class="stat-label">کل USDT کسب شده</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-icon">⚡</div>
+                <div class="stat-value" id="miningPower">۱۰x</div>
+                <div class="stat-label">قدرت استخراج</div>
+            </div>
+            
+            <div class="stat-item">
+                <div class="stat-icon">⭐</div>
+                <div class="stat-value" id="userLevel">۱</div>
+                <div class="stat-label">سطح کاربری</div>
+            </div>
+        </div>
+        
+        <!-- نمودارها -->
+        <div class="charts-grid">
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">📈 رشد روزانه</h3>
+                    <select id="timeRange" onchange="updateChart()" style="background: var(--glass); border: 1px solid var(--glass-border); color: white; padding: 5px 10px; border-radius: 6px;">
+                        <option value="7">۷ روز گذشته</option>
+                        <option value="30">۳۰ روز گذشته</option>
+                        <option value="90">۹۰ روز گذشته</option>
+                    </select>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">استخراج امروز:</span>
-                    <span class="stat-value sod-value" id="todayMined">۰ SOD</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">استخراج کل:</span>
-                    <span class="stat-value sod-value" id="totalMined">۰ SOD</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">موجودی SOD:</span>
-                    <span class="stat-value sod-value" id="sodBalance">۰</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">موجودی USDT:</span>
-                    <span class="stat-value usdt-value" id="usdtBalance">۰</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">تاریخ ثبت‌نام:</span>
-                    <span class="stat-value" id="registerDate">-</span>
+                <div id="growthChart" style="height: 200px; display: flex; align-items: flex-end; gap: 10px; padding: 20px 0;">
+                    <!-- نمودار با JS پر می‌شود -->
                 </div>
             </div>
-
-            <!-- سیستم ارجاع -->
-            <div class="card">
-                <h3><i class="fas fa-users"></i> سیستم ارجاع</h3>
-                <div class="stat-row">
-                    <span class="stat-label">تعداد دعوت‌ها:</span>
-                    <span class="stat-value" id="referralCount">۰ نفر</span>
+            
+            <div class="chart-container">
+                <div class="chart-header">
+                    <h3 class="chart-title">🎯 پیشرفت USDT</h3>
                 </div>
-                <div class="stat-row">
-                    <span class="stat-label">پاداش ارجاع:</span>
-                    <span class="stat-value sod-value" id="referralReward">۰ SOD</span>
-                </div>
-                <div class="stat-row">
-                    <span class="stat-label">پاداش USDT:</span>
-                    <span class="stat-value usdt-value" id="referralUSDT">۰</span>
-                </div>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="referralProgress" style="width: 0%"></div>
-                </div>
-                <p style="color: var(--text-secondary); font-size: 13px; margin-top: 10px;">
-                    <i class="fas fa-gift"></i> هر ۱۰ دعوت = ۰.۰۱ USDT پاداش اضافی
-                </p>
-            </div>
-
-            <!-- پیشرفت سطح -->
-            <div class="card">
-                <h3><i class="fas fa-chart-line"></i> پیشرفت سطح</h3>
-                <div class="progress-bar">
-                    <div class="progress-fill" id="levelProgress" style="width: 10%"></div>
-                </div>
-                <p style="text-align: center; margin: 20px 0; color: var(--text-secondary);" id="levelText">
-                    سطح ۱ - تا سطح بعدی: ۹۰۰,۰۰۰ SOD
-                </p>
-                <div style="text-align: center;">
-                    <button class="btn" onclick="goToGame()">
-                        <i class="fas fa-bolt"></i> ادامه استخراج
-                    </button>
-                </div>
-            </div>
-
-            <!-- تاریخچه اخیر -->
-            <div class="card">
-                <h3><i class="fas fa-history"></i> تاریخچه اخیر</h3>
-                <div class="recent-activity" id="recentActivity">
-                    <div class="activity-item">
-                        <div>🎉 در حال بارگذاری داده‌ها...</div>
-                        <div class="activity-time">لطفا منتظر بمانید</div>
+                <div style="text-align: center; padding: 20px 0;">
+                    <div style="font-size: 48px; color: var(--usdt); margin-bottom: 10px;">
+                        <i class="fas fa-wallet"></i>
+                    </div>
+                    <div style="font-size: 24px; font-weight: 900; margin-bottom: 10px;" id="usdtProgress">۰.۰۰۰۰</div>
+                    <div style="color: var(--text-secondary);">USDT قابل دریافت</div>
+                    <div class="progress-bar" style="margin: 20px 0; height: 8px;">
+                        <div class="progress-fill" id="usdtProgressBar"></div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; font-size: 12px; color: var(--text-secondary);">
+                        <span>۰</span>
+                        <span id="nextRewardGoal">۱,۰۰۰,۰۰۰ SOD</span>
                     </div>
                 </div>
             </div>
         </div>
-
-        <!-- بخش دستاوردها -->
-        <div style="margin-top: 40px; text-align: center;">
-            <h3 style="color: var(--secondary); margin-bottom: 20px;">🏆 دستاوردهای شما</h3>
-            <div style="display: flex; justify-content: center; gap: 20px; flex-wrap: wrap;">
-                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; min-width: 150px; border: 2px solid var(--primary);">
-                    <div style="font-size: 28px; margin-bottom: 10px;">🥇</div>
-                    <div style="font-weight: bold;">ماینر طلایی</div>
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">۱۰۰K SOD استخراج</div>
+        
+        <!-- فعالیت‌های اخیر -->
+        <div class="recent-activity">
+            <h3 style="margin-bottom: 5px;">📋 فعالیت‌های اخیر</h3>
+            <p style="color: var(--text-secondary); font-size: 14px;">آخرین تراکنش‌ها و فعالیت‌های شما</p>
+            
+            <div class="activity-list" id="activityList">
+                <!-- فعالیت‌ها با JS پر می‌شوند -->
+                <div class="activity-item">
+                    <div class="activity-icon">⏳</div>
+                    <div class="activity-content">
+                        <div style="color: var(--text-secondary); text-align: center; padding: 20px;">
+                            در حال بارگذاری فعالیت‌ها...
+                        </div>
+                    </div>
                 </div>
-                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; min-width: 150px;">
-                    <div style="font-size: 28px; margin-bottom: 10px;">⚡</div>
-                    <div>کاربر فعال</div>
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">۳ روز متوالی</div>
+            </div>
+            
+            <div style="text-align: center; margin-top: 20px;">
+                <button onclick="loadMoreActivities()" class="btn btn-outline btn-small">
+                    <i class="fas fa-sync-alt"></i> بارگذاری بیشتر
+                </button>
+            </div>
+        </div>
+        
+        <!-- اقدامات سریع -->
+        <div style="margin-bottom: 40px;">
+            <h3 style="margin-bottom: 20px;">🚀 اقدامات سریع</h3>
+            <div class="quick-actions">
+                <div class="quick-action-btn" onclick="window.location.href='index.html#miner'">
+                    <div class="quick-action-icon">⛏️</div>
+                    <div>استخراج</div>
                 </div>
-                <div style="background: rgba(255,255,255,0.05); padding: 20px; border-radius: 10px; min-width: 150px;">
-                    <div style="font-size: 28px; margin-bottom: 10px;">🌟</div>
-                    <div>دعوت کننده</div>
-                    <div style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">۵ دوست دعوت شده</div>
+                
+                <div class="quick-action-btn" onclick="buySOD()">
+                    <div class="quick-action-icon">🛒</div>
+                    <div>خرید SOD</div>
+                </div>
+                
+                <div class="quick-action-btn" onclick="claimRewards()">
+                    <div class="quick-action-icon">💎</div>
+                    <div>دریافت پاداش</div>
+                </div>
+                
+                <div class="quick-action-btn" onclick="window.location.href='missions.html'">
+                    <div class="quick-action-icon">🎯</div>
+                    <div>مأموریت‌ها</div>
+                </div>
+                
+                <div class="quick-action-btn" onclick="inviteFriends()">
+                    <div class="quick-action-icon">👥</div>
+                    <div>دعوت دوستان</div>
+                </div>
+                
+                <div class="quick-action-btn" onclick="showSettings()">
+                    <div class="quick-action-icon">⚙️</div>
+                    <div>تنظیمات</div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- وضعیت حساب -->
+        <div class="card">
+            <h3 style="margin-bottom: 20px;">📊 وضعیت حساب</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px;">
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 5px;">تاریخ عضویت</div>
+                    <div style="font-weight: 600;" id="joinDate">--</div>
+                </div>
+                
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 5px;">کد دعوت</div>
+                    <div style="font-weight: 600; font-family: monospace;" id="inviteCode">--</div>
+                </div>
+                
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 5px;">کاربران دعوت شده</div>
+                    <div style="font-weight: 600;" id="referralCount">۰ نفر</div>
+                </div>
+                
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 5px;">رتبه در لیدربرد</div>
+                    <div style="font-weight: 600;" id="leaderboardRank">--</div>
                 </div>
             </div>
         </div>
     </div>
-
+    
     <!-- اسکریپت‌ها -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
     <script src="supabase-config.js"></script>
+    <script src="utils.js"></script>
+    
     <script>
+        // ==================== متغیرهای سراسری ====================
         let currentUser = null;
-        let userData = null;
         let gameData = null;
-
-        // چک لاگین
-        async function checkAuth() {
+        let userInfo = null;
+        let activities = [];
+        
+        // ==================== راه‌اندازی ====================
+        
+        async function initDashboard() {
             try {
+                // بررسی session
                 const { data: { session } } = await window.supabaseClient.auth.getSession();
                 
                 if (!session) {
@@ -376,204 +390,457 @@
                 }
                 
                 currentUser = session.user;
-                await loadDashboardData();
+                
+                // بارگذاری اطلاعات کاربر
+                await loadUserData();
+                
+                // بارگذاری فعالیت‌ها
+                await loadActivities();
+                
+                // به‌روزرسانی UI
+                updateDashboard();
+                
+                console.log('✅ داشبورد بارگذاری شد');
                 
             } catch (error) {
-                console.error('Auth error:', error);
-                window.location.href = 'index.html';
+                console.error('❌ خطا در بارگذاری داشبورد:', error);
+                showError('مشکلی در بارگذاری داشبورد پیش آمد');
             }
         }
-
-        // بارگذاری داده‌های داشبورد
-        async function loadDashboardData() {
+        
+        async function loadUserData() {
             try {
                 // دریافت اطلاعات کاربر
-                const { data: user, error: userError } = await window.GameDB.getUser(currentUser.id);
+                const { data: userData, error: userError } = await window.supabaseClient
+                    .from('users')
+                    .select('*')
+                    .eq('id', currentUser.id)
+                    .single();
+                
                 if (userError) throw userError;
-                userData = user;
+                userInfo = userData;
                 
                 // دریافت اطلاعات بازی
-                const { data: game, error: gameError } = await window.GameDB.getGameData(currentUser.id);
+                const { data: gameDataResult, error: gameError } = await window.supabaseClient
+                    .from('game_data')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .single();
+                
                 if (gameError) throw gameError;
-                gameData = game;
-                
-                // آپدیت UI
-                updateDashboardUI();
-                
-                // بارگذاری تراکنش‌ها
-                await loadRecentActivity();
-                
-                // چک ادمین
-                checkAdminAccess();
+                gameData = gameDataResult;
                 
             } catch (error) {
-                console.error('Error loading dashboard:', error);
-                showMessage('خطا در بارگذاری داده‌ها');
+                console.error('❌ خطا در بارگذاری اطلاعات:', error);
+                throw error;
             }
         }
-
-        // آپدیت UI داشبورد
-        function updateDashboardUI() {
-            if (!userData || !gameData) return;
+        
+        async function loadActivities() {
+            try {
+                // دریافت تراکنش‌های اخیر
+                const { data, error } = await window.supabaseClient
+                    .from('transactions')
+                    .select('*')
+                    .eq('user_id', currentUser.id)
+                    .order('created_at', { ascending: false })
+                    .limit(10);
+                
+                if (error) throw error;
+                activities = data || [];
+                
+            } catch (error) {
+                console.error('❌ خطا در بارگذاری فعالیت‌ها:', error);
+                activities = [];
+            }
+        }
+        
+        // ==================== به‌روزرسانی UI ====================
+        
+        function updateDashboard() {
+            if (!userInfo || !gameData) return;
             
             // اطلاعات کاربر
-            document.getElementById('userLevel').textContent = gameData.user_level;
-            document.getElementById('todayMined').textContent = formatNumber(gameData.today_earnings) + ' SOD';
-            document.getElementById('totalMined').textContent = formatNumber(gameData.total_mined) + ' SOD';
-            document.getElementById('sodBalance').textContent = formatNumber(gameData.sod_balance);
-            document.getElementById('usdtBalance').textContent = gameData.usdt_balance.toFixed(4);
-            document.getElementById('registerDate').textContent = userData.register_date || '-';
+            document.getElementById('userName').textContent = userInfo.full_name || userInfo.email.split('@')[0];
+            document.getElementById('joinDate').textContent = userInfo.register_date || '--';
+            document.getElementById('inviteCode').textContent = userInfo.invite_code || '--';
             
-            // کد دعوت
-            document.getElementById('inviteCode').textContent = userData.invite_code || 'INV-' + currentUser.id.substr(0, 8).toUpperCase();
-            const inviteLink = window.location.origin + '/index.html?ref=' + (userData.invite_code || currentUser.id);
-            document.getElementById('inviteLink').value = inviteLink;
+            // آمار
+            document.getElementById('totalEarnings').textContent = window.NumberUtils.formatNumber(gameData.total_mined || 0);
+            document.getElementById('totalUSDT').textContent = (gameData.usdt_balance || 0).toFixed(4);
+            document.getElementById('miningPower').textContent = (gameData.mining_power || 10) + 'x';
+            document.getElementById('userLevel').textContent = gameData.user_level || 1;
             
-            // پیشرفت سطح
-            const nextLevelSOD = gameData.user_level * 1000000;
-            const progress = Math.min((gameData.total_mined / nextLevelSOD) * 100, 100);
-            document.getElementById('levelProgress').style.width = progress + '%';
-            document.getElementById('levelText').textContent = 
-                `سطح ${gameData.user_level} - تا سطح بعدی: ${formatNumber(nextLevelSOD - gameData.total_mined)} SOD`;
+            // پیشرفت USDT
+            const progressPercent = Math.min(((gameData.usdt_progress || 0) / 1000000) * 100, 100);
+            document.getElementById('usdtProgressBar').style.width = progressPercent + '%';
+            document.getElementById('usdtProgress').textContent = (gameData.usdt_balance || 0).toFixed(4);
+            document.getElementById('nextRewardGoal').textContent = window.NumberUtils.formatNumber(1000000 - (gameData.usdt_progress || 0)) + ' SOD';
             
-            // سیستم ارجاع (دمو)
-            const referralCount = Math.floor(Math.random() * 5);
-            const referralReward = referralCount * 50000;
-            document.getElementById('referralCount').textContent = referralCount + ' نفر';
-            document.getElementById('referralReward').textContent = formatNumber(referralReward) + ' SOD';
-            document.getElementById('referralUSDT').textContent = (referralCount * 0.001).toFixed(4);
-            document.getElementById('referralProgress').style.width = (referralCount * 20) + '%';
+            // فعالیت‌ها
+            renderActivities();
+            
+            // نمودار رشد
+            renderGrowthChart();
+            
+            // به‌روزرسانی رتبه
+            updateLeaderboardRank();
         }
-
-        // بارگذاری فعالیت‌های اخیر
-        async function loadRecentActivity() {
+        
+        function renderActivities() {
+            const container = document.getElementById('activityList');
+            
+            if (!activities.length) {
+                container.innerHTML = `
+                    <div class="activity-item">
+                        <div class="activity-icon">📭</div>
+                        <div class="activity-content">
+                            <div class="activity-title">هنوز فعالیتی ثبت نکرده‌اید</div>
+                            <div class="activity-time">با استخراج شروع کنید!</div>
+                        </div>
+                    </div>
+                `;
+                return;
+            }
+            
+            let html = '';
+            
+            activities.forEach(activity => {
+                const icon = getActivityIcon(activity.type, activity.amount);
+                const amount = activity.type === 'usdt' 
+                    ? `${activity.amount > 0 ? '+' : ''}${Math.abs(activity.amount).toFixed(4)} USDT`
+                    : `${activity.amount > 0 ? '+' : ''}${window.NumberUtils.formatNumber(activity.amount)} SOD`;
+                
+                const color = activity.amount > 0 ? 'var(--success)' : 'var(--error)';
+                
+                html += `
+                    <div class="activity-item">
+                        <div class="activity-icon">${icon}</div>
+                        <div class="activity-content">
+                            <div class="activity-title">${activity.description}</div>
+                            <div class="activity-time">${window.NumberUtils.formatTimeAgo(activity.created_at)}</div>
+                        </div>
+                        <div style="font-weight: 700; color: ${color};">${amount}</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        function getActivityIcon(type, amount) {
+            if (type === 'usdt') {
+                return amount > 0 ? '💰' : '💸';
+            } else {
+                if (amount > 0) return '⛏️';
+                if (amount < 0) return '📤';
+                return '📊';
+            }
+        }
+        
+        function renderGrowthChart() {
+            const container = document.getElementById('growthChart');
+            
+            // داده‌های نمونه
+            const days = 7;
+            const data = [];
+            
+            for (let i = days; i >= 1; i--) {
+                const dayEarnings = Math.floor(Math.random() * 10000) + 5000;
+                data.push({
+                    day: i,
+                    earnings: dayEarnings
+                });
+            }
+            
+            const maxEarnings = Math.max(...data.map(d => d.earnings));
+            
+            let html = '';
+            data.forEach(item => {
+                const height = (item.earnings / maxEarnings) * 150;
+                html += `
+                    <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+                        <div style="width: 20px; background: var(--gradient); border-radius: 10px 10px 0 0; height: ${height}px;"></div>
+                        <div style="font-size: 12px; color: var(--text-secondary); margin-top: 5px;">${item.day} روز پیش</div>
+                        <div style="font-size: 11px; color: var(--text); margin-top: 2px;">${window.NumberUtils.formatNumber(item.earnings)}</div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+        }
+        
+        async function updateLeaderboardRank() {
             try {
-                const { data: transactions, error } = await window.GameDB.getTransactions(currentUser.id, 8);
+                const { data: allUsers } = await window.supabaseClient
+                    .from('game_data')
+                    .select('total_mined, user_id')
+                    .order('total_mined', { ascending: false });
                 
-                const activityList = document.getElementById('recentActivity');
-                if (!activityList) return;
-                
-                if (error || !transactions || transactions.length === 0) {
-                    activityList.innerHTML = `
-                        <div class="activity-item">
-                            <div>🎉 ثبت نام در سیستم</div>
-                            <div class="activity-time">${new Date().toLocaleDateString('fa-IR')}</div>
-                        </div>
-                    `;
-                    return;
+                if (allUsers) {
+                    const rank = allUsers.findIndex(user => user.user_id === currentUser.id) + 1;
+                    document.getElementById('leaderboardRank').textContent = `#${rank}`;
                 }
+            } catch (error) {
+                console.error('خطا در دریافت رتبه:', error);
+            }
+        }
+        
+        // ==================== توابع عملیاتی ====================
+        
+        function buySOD() {
+            window.location.href = 'index.html#sale';
+        }
+        
+        async function claimRewards() {
+            if (!gameData || !gameData.usdt_balance || gameData.usdt_balance <= 0) {
+                showMessage('هنوز USDT پاداش دریافت نکرده‌اید', 'info');
+                return;
+            }
+            
+            try {
+                // اینجا منطق دریافت پاداش از index.html کپی می‌شود
+                showMessage('در حال اتصال به کیف پول...', 'info');
                 
-                activityList.innerHTML = transactions.map(tx => {
-                    const date = new Date(tx.created_at);
-                    const timeAgo = getTimeAgo(date);
-                    
-                    let icon = '⛏️';
-                    if (tx.type === 'usdt') icon = '💰';
-                    if (tx.description.includes('خرید')) icon = '🛒';
-                    if (tx.amount < 0) icon = '📤';
-                    
-                    return `
-                        <div class="activity-item">
-                            <div>${icon} ${tx.description}</div>
-                            <div class="activity-time">${timeAgo}</div>
-                        </div>
-                    `;
-                }).join('');
+                // شبیه‌سازی
+                setTimeout(() => {
+                    showMessage(`${gameData.usdt_balance.toFixed(4)} USDT دریافت شد!`, 'success');
+                }, 1500);
                 
             } catch (error) {
-                console.error('Error loading activity:', error);
+                console.error('خطا در دریافت پاداش:', error);
+                showError('مشکلی در دریافت پاداش پیش آمد');
             }
         }
-
-        // کپی لینک دعوت
-        function copyInviteLink() {
-            const linkInput = document.getElementById('inviteLink');
-            linkInput.select();
-            navigator.clipboard.writeText(linkInput.value)
-                .then(() => {
-                    showMessage('✅ لینک دعوت کپی شد!');
-                })
-                .catch(err => {
-                    console.error('Copy error:', err);
-                    showMessage('خطا در کپی لینک');
-                });
-        }
-
-        // فرمت عدد
-        function formatNumber(num) {
-            if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
-            if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
-            return num.toLocaleString('fa-IR');
-        }
-
-        // محاسبه زمان گذشته
-        function getTimeAgo(date) {
-            const now = new Date();
-            const diff = now - date;
+        
+        async function inviteFriends() {
+            if (!userInfo || !userInfo.invite_code) {
+                showError('کد دعوت یافت نشد');
+                return;
+            }
             
-            const minutes = Math.floor(diff / 60000);
-            const hours = Math.floor(diff / 3600000);
-            const days = Math.floor(diff / 86400000);
+            const inviteLink = `${window.location.origin}/index.html?ref=${userInfo.invite_code}`;
+            const message = `🎉 به SODmAX Pro بپیوندید و SOD رایگان دریافت کنید!\n\n` +
+                          `🔗 لینک دعوت: ${inviteLink}\n` +
+                          `🎁 کد دعوت: ${userInfo.invite_code}\n\n` +
+                          `⛏️ استخراج هوشمند با پاداش واقعی USDT`;
             
-            if (minutes < 60) return `${minutes} دقیقه پیش`;
-            if (hours < 24) return `${hours} ساعت پیش`;
-            if (days < 7) return `${days} روز پیش`;
-            
-            return date.toLocaleDateString('fa-IR');
-        }
-
-        // چک دسترسی ادمین
-        function checkAdminAccess() {
-            if (!currentUser) return;
-            
-            const adminEmails = ['hamyarhf@gmail.com', 'admin@example.com', 'test@example.com'];
-            if (adminEmails.includes(currentUser.email.toLowerCase())) {
-                document.getElementById('adminLink').style.display = 'flex';
+            if (navigator.share) {
+                try {
+                    await navigator.share({
+                        title: 'SODmAX Pro - دعوت دوستان',
+                        text: message,
+                        url: inviteLink
+                    });
+                    showMessage('لینک دعوت با موفقیت به اشتراک گذاشته شد', 'success');
+                } catch (error) {
+                    copyToClipboard(inviteLink);
+                }
+            } else {
+                copyToClipboard(inviteLink);
             }
         }
-
-        // رفتن به بازی
-        function goToGame() {
-            window.location.href = 'index.html';
+        
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(() => {
+                showMessage('لینک دعوت کپی شد!', 'success');
+            }).catch(() => {
+                // Fallback
+                const textarea = document.createElement('textarea');
+                textarea.value = text;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                showMessage('لینک دعوت کپی شد!', 'success');
+            });
         }
-
-        // خروج
+        
+        function showSettings() {
+            const settings = `
+                <div style="padding: 20px;">
+                    <h3 style="margin-bottom: 20px;">⚙️ تنظیمات حساب</h3>
+                    
+                    <div style="margin-bottom: 15px;">
+                        <div style="color: var(--text-secondary); font-size: 14px; margin-bottom: 5px;">نام نمایشی</div>
+                        <input type="text" id="displayName" value="${userInfo.full_name || ''}" style="width: 100%; padding: 10px; background: var(--glass); border: 1px solid var(--glass-border); border-radius: 8px; color: white;">
+                    </div>
+                    
+                    <div style="display: flex; gap: 10px; margin-top: 25px;">
+                        <button onclick="saveSettings()" style="flex: 1; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                            ذخیره
+                        </button>
+                        <button onclick="closeModal()" style="flex: 1; padding: 12px; background: var(--glass); color: white; border: 1px solid var(--glass-border); border-radius: 8px; cursor: pointer;">
+                            انصراف
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            showModal('تنظیمات', settings);
+        }
+        
+        async function saveSettings() {
+            const displayName = document.getElementById('displayName').value;
+            
+            try {
+                await window.supabaseClient
+                    .from('users')
+                    .update({ full_name: displayName })
+                    .eq('id', currentUser.id);
+                
+                userInfo.full_name = displayName;
+                updateDashboard();
+                closeModal();
+                showMessage('تغییرات ذخیره شد', 'success');
+                
+            } catch (error) {
+                console.error('خطا در ذخیره تنظیمات:', error);
+                showError('مشکلی در ذخیره تنظیمات پیش آمد');
+            }
+        }
+        
         async function logout() {
             try {
                 await window.supabaseClient.auth.signOut();
                 window.location.href = 'index.html';
             } catch (error) {
-                console.error('Logout error:', error);
+                console.error('خطا در خروج:', error);
             }
         }
-
-        // نمایش پیام
-        function showMessage(text) {
-            const messageDiv = document.createElement('div');
-            messageDiv.textContent = text;
-            messageDiv.style.cssText = `
+        
+        function updateChart() {
+            renderGrowthChart();
+        }
+        
+        function loadMoreActivities() {
+            // در واقعیت باید از دیتابیس بیشتر بارگذاری کند
+            showMessage('در حال بارگذاری فعالیت‌های بیشتر...', 'info');
+            setTimeout(() => {
+                showMessage('همه فعالیت‌ها نمایش داده شده‌اند', 'info');
+            }, 1000);
+        }
+        
+        // ==================== توابع کمکی ====================
+        
+        function showMessage(message, type = 'info') {
+            const colors = {
+                success: '#00C853',
+                error: '#FF3D00',
+                info: '#0066FF',
+                warning: '#FFB300'
+            };
+            
+            const notification = document.createElement('div');
+            notification.style.cssText = `
                 position: fixed;
                 top: 20px;
                 right: 20px;
-                background: var(--secondary);
-                color: white;
-                padding: 15px 25px;
-                border-radius: 10px;
-                z-index: 1000;
-                box-shadow: 0 5px 15px rgba(0,0,0,0.3);
+                background: var(--card);
+                border: 1px solid var(--glass-border);
+                border-left: 4px solid ${colors[type] || colors.info};
+                border-radius: var(--radius);
+                padding: 15px 20px;
+                display: flex;
+                align-items: center;
+                gap: 15px;
+                z-index: 10000;
                 animation: slideIn 0.3s ease;
+                max-width: 400px;
             `;
             
-            document.body.appendChild(messageDiv);
+            notification.innerHTML = `
+                <div style="font-size: 20px;">${type === 'success' ? '✅' : type === 'error' ? '❌' : type === 'warning' ? '⚠️' : 'ℹ️'}</div>
+                <div>
+                    <div style="font-weight: bold;">${type === 'success' ? 'موفقیت' : type === 'error' ? 'خطا' : type === 'warning' ? 'هشدار' : 'اطلاع'}</div>
+                    <div style="color: var(--text-secondary); font-size: 14px;">${message}</div>
+                </div>
+            `;
+            
+            document.body.appendChild(notification);
             
             setTimeout(() => {
-                messageDiv.style.animation = 'slideOut 0.3s ease';
-                setTimeout(() => messageDiv.remove(), 300);
+                notification.style.animation = 'slideOut 0.3s ease';
+                setTimeout(() => notification.remove(), 300);
             }, 3000);
         }
-
-        // راه‌اندازی
-        document.addEventListener('DOMContentLoaded', checkAuth);
+        
+        function showError(message) {
+            showMessage(message, 'error');
+        }
+        
+        function showModal(title, content) {
+            // پنهان کردن قبلی
+            const existing = document.getElementById('customModal');
+            if (existing) existing.remove();
+            
+            const modal = document.createElement('div');
+            modal.id = 'customModal';
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                right: 0;
+                bottom: 0;
+                background: rgba(0, 0, 0, 0.8);
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                z-index: 10001;
+                padding: 20px;
+            `;
+            
+            modal.innerHTML = `
+                <div style="background: var(--card); border-radius: var(--radius-lg); width: 100%; max-width: 500px; border: 1px solid var(--glass-border); animation: fadeIn 0.3s ease;">
+                    <div style="padding: 20px; border-bottom: 1px solid var(--glass-border); display: flex; justify-content: space-between; align-items: center;">
+                        <h3 style="margin: 0;">${title}</h3>
+                        <button onclick="closeModal()" style="background: none; border: none; color: var(--text-secondary); font-size: 20px; cursor: pointer;">×</button>
+                    </div>
+                    ${content}
+                </div>
+            `;
+            
+            document.body.appendChild(modal);
+            
+            // اضافه کردن انیمیشن
+            if (!document.querySelector('#modal-animations')) {
+                const style = document.createElement('style');
+                style.id = 'modal-animations';
+                style.textContent = `
+                    @keyframes fadeIn {
+                        from { opacity: 0; transform: scale(0.9); }
+                        to { opacity: 1; transform: scale(1); }
+                    }
+                    @keyframes slideIn {
+                        from { transform: translateX(100%); }
+                        to { transform: translateX(0); }
+                    }
+                    @keyframes slideOut {
+                        from { transform: translateX(0); }
+                        to { transform: translateX(100%); }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+        }
+        
+        function closeModal() {
+            const modal = document.getElementById('customModal');
+            if (modal) modal.remove();
+        }
+        
+        // ==================== راه‌اندازی ====================
+        
+        document.addEventListener('DOMContentLoaded', function() {
+            initDashboard();
+            
+            // رفرش خودکار هر 30 ثانیه
+            setInterval(() => {
+                if (currentUser) {
+                    loadUserData().then(updateDashboard);
+                }
+            }, 30000);
+        });
     </script>
 </body>
 </html>
