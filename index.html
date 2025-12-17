@@ -3,19 +3,7 @@
 <head>
     <!-- در <head> -->
 <script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
-    // در یک فایل جدا مثل supabase-config.js
-const initSupabase = () => {
-    const supabaseUrl = 'https://your-project.supabase.co';
-    const supabaseKey = 'your-anon-key';
-    window.supabase = supabase.createClient(supabaseUrl, supabaseKey);
-    console.log('Supabase initialized successfully');
-};
 
-// تابع رو global کنید
-window.initSupabase = initSupabase;
-
-// یا مستقیما event listener اضافه کنید
-document.addEventListener('DOMContentLoaded', initSupabase);
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SODmAX Pro | استخراج حرفه‌ای با پاداش واقعی USDT</title>
@@ -650,5 +638,6 @@ document.addEventListener('DOMContentLoaded', initSupabase);
     </script>
 </body>
 </html>
+
 
 
