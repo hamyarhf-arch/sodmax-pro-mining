@@ -1,291 +1,210 @@
-// فایل: supabase-config.js
-// تنظیمات Supabase برای SODmAX Pro
+// ==================== supabase-config.js ====================
+// فایل پیکربندی Supabase برای SODmAX Pro
 
-console.log('🚀 Loading SODmAX Supabase configuration...');
+console.log('🔧 بارگذاری پیکربندی Supabase...');
 
-const SUPABASE_CONFIG = {
-    URL: 'https://utnqkgbmdjilvbkwjqef.supabase.co',
-    ANON_KEY: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0bnFrZ2JtZGppbHZia3dqcWVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MDM3ODUsImV4cCI6MjA4MTQ3OTc4NX0.-PA0KAaSuQ-ZAJZLdVNe-AafE5fHf8CA5R4uR3TKGDc'
-};
+// تنظیمات Supabase (از پروژه شما)
+const SUPABASE_URL = 'https://utnqkgbmdjilvbkwjqef.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0bnFrZ2JtZGppbHZia3dqcWVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUyMzIwMDksImV4cCI6MjA1MDgwODAwOX0.E0rR6NfU4C_v6DSLPdPieC4uQQa6K4T0w8Jj3K0Y6eE';
 
-// ایجاد کلاینت Supabase
+// ایجاد Supabase Client
+let supabaseClient = null;
+
 try {
-    window.supabaseClient = window.supabase.createClient(
-        SUPABASE_CONFIG.URL, 
-        SUPABASE_CONFIG.ANON_KEY,
-        {
-            auth: {
-                persistSession: true,
-                autoRefreshToken: true,
-                detectSessionInUrl: true
-            }
-        }
-    );
-    
-    console.log('✅ Supabase client created successfully');
+    if (window.supabase) {
+        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+        window.supabaseClient = supabaseClient;
+        console.log('✅ Supabase Client ایجاد شد');
+    } else {
+        console.error('❌ کتابخانه Supabase بارگذاری نشده است');
+    }
 } catch (error) {
-    console.error('❌ Error creating Supabase client:', error);
+    console.error('❌ خطا در ایجاد Supabase Client:', error);
 }
 
-// توابع کمکی دیتابیس
+// ==================== توابع دیتابیس ====================
+
 const GameDB = {
-    // دریافت اطلاعات کاربر
-    async getUser(userId) {
+    // تست اتصال
+    async testConnection() {
         try {
-            const { data, error } = await window.supabaseClient
+            const { data, error } = await supabaseClient
                 .from('users')
-                .select('*')
-                .eq('id', userId)
-                .single();
+                .select('count')
+                .limit(1);
             
-            return { data, error };
+            return !error;
         } catch (error) {
-            console.error('Error getting user:', error);
-            return { data: null, error };
+            console.error('❌ خطا در تست اتصال:', error);
+            return false;
         }
     },
     
     // دریافت یا ایجاد کاربر
     async getOrCreateUser(userId, email) {
         try {
-            // اول بررسی کن کاربر وجود دارد یا نه
-            let { data: user, error: userError } = await this.getUser(userId);
+            // اول سعی کن کاربر را پیدا کنی
+            const { data: existingUser, error: fetchError } = await supabaseClient
+                .from('users')
+                .select('*')
+                .eq('id', userId)
+                .single();
             
-            if (userError || !user) {
-                console.log('👤 Creating new user:', email);
-                
-                // ایجاد کاربر جدید
-                const { data, error } = await window.supabaseClient
-                    .from('users')
-                    .insert([{
-                        id: userId,
-                        email: email,
-                        full_name: email.split('@')[0],
-                        register_date: new Date().toLocaleDateString('fa-IR'),
-                        invite_code: 'INV' + Math.random().toString(36).substr(2, 8).toUpperCase(),
-                        created_at: new Date().toISOString()
-                    }])
-                    .select()
-                    .single();
-                
-                if (error) {
-                    console.error('Error creating user:', error);
-                    return { data: null, error };
-                }
-                
-                console.log('✅ New user created:', data.email);
-                return { data, error: null };
+            if (!fetchError && existingUser) {
+                return { data: existingUser, error: null };
             }
             
-            console.log('✅ User found:', user.email);
-            return { data: user, error: null };
+            // اگر کاربر وجود نداشت، ایجاد کن
+            const newUser = {
+                id: userId,
+                email: email,
+                full_name: email.split('@')[0],
+                register_date: new Date().toLocaleDateString('fa-IR'),
+                invite_code: 'INV-' + Math.random().toString(36).substr(2, 8).toUpperCase(),
+                is_admin: email.toLowerCase() === 'hamyarhf@gmail.com'
+            };
+            
+            const { data: createdUser, error: createError } = await supabaseClient
+                .from('users')
+                .insert([newUser])
+                .select()
+                .single();
+            
+            if (createError) {
+                console.error('❌ خطا در ایجاد کاربر:', createError);
+                return { data: null, error: createError };
+            }
+            
+            return { data: createdUser, error: null };
             
         } catch (error) {
-            console.error('Error in getOrCreateUser:', error);
-            return { data: null, error };
+            console.error('❌ خطا در getOrCreateUser:', error);
+            return { data: null, error: error };
         }
     },
     
-    // دریافت اطلاعات بازی
-    async getGameData(userId) {
+    // دریافت یا ایجاد اطلاعات بازی
+    async getOrCreateGameData(userId) {
         try {
-            const { data, error } = await window.supabaseClient
+            // اول سعی کن اطلاعات بازی را پیدا کنی
+            const { data: existingData, error: fetchError } = await supabaseClient
                 .from('game_data')
                 .select('*')
                 .eq('user_id', userId)
                 .single();
             
-            return { data, error };
-        } catch (error) {
-            console.error('Error getting game data:', error);
-            return { data: null, error };
-        }
-    },
-    
-    // ایجاد یا دریافت اطلاعات بازی
-    async getOrCreateGameData(userId) {
-        try {
-            let { data: gameData, error: gameError } = await this.getGameData(userId);
-            
-            if (gameError || !gameData) {
-                console.log('🎮 Creating new game data for user:', userId);
-                
-                // ایجاد داده‌های بازی جدید
-                const { data, error } = await window.supabaseClient
-                    .from('game_data')
-                    .insert([{
-                        user_id: userId,
-                        sod_balance: 1000000, // هدیه ثبت نام
-                        usdt_balance: 0,
-                        user_level: 1,
-                        total_mined: 1000000,
-                        today_earnings: 0,
-                        mining_power: 10,
-                        usdt_progress: 0,
-                        boost_active: false,
-                        last_active: new Date().toISOString(),
-                        created_at: new Date().toISOString()
-                    }])
-                    .select()
-                    .single();
-                
-                if (error) {
-                    console.error('Error creating game data:', error);
-                    return { data: null, error };
-                }
-                
-                console.log('✅ New game data created');
-                return { data, error: null };
+            if (!fetchError && existingData) {
+                return { data: existingData, error: null };
             }
             
-            console.log('✅ Game data found');
-            return { data: gameData, error: null };
+            // اگر اطلاعات بازی وجود نداشت، ایجاد کن
+            const newGameData = {
+                user_id: userId,
+                sod_balance: 1000000,
+                usdt_balance: 0,
+                today_earnings: 0,
+                mining_power: 10,
+                user_level: 1,
+                usdt_progress: 0,
+                total_mined: 1000000,
+                boost_active: false,
+                boost_end_time: 0,
+                created_at: new Date().toISOString()
+            };
+            
+            const { data: createdData, error: createError } = await supabaseClient
+                .from('game_data')
+                .insert([newGameData])
+                .select()
+                .single();
+            
+            if (createError) {
+                console.error('❌ خطا در ایجاد اطلاعات بازی:', createError);
+                return { data: null, error: createError };
+            }
+            
+            return { data: createdData, error: null };
             
         } catch (error) {
-            console.error('Error in getOrCreateGameData:', error);
-            return { data: null, error };
+            console.error('❌ خطا در getOrCreateGameData:', error);
+            return { data: null, error: error };
         }
     },
     
     // آپدیت اطلاعات بازی
     async updateGameData(userId, updates) {
         try {
-            const { data, error } = await window.supabaseClient
+            const { error } = await supabaseClient
                 .from('game_data')
-                .update({
-                    ...updates,
-                    last_active: new Date().toISOString(),
-                    updated_at: new Date().toISOString()
-                })
-                .eq('user_id', userId)
-                .select()
-                .single();
+                .update(updates)
+                .eq('user_id', userId);
             
-            return { data, error };
-        } catch (error) {
-            console.error('Error updating game data:', error);
-            return { data: null, error };
-        }
-    },
-    
-    // افزودن تراکنش
-    async addTransaction(userId, description, amount, type = 'sod') {
-        try {
-            const { data, error } = await window.supabaseClient
-                .from('transactions')
-                .insert([{
-                    user_id: userId,
-                    description: description,
-                    amount: amount,
-                    type: type,
-                    created_at: new Date().toISOString()
-                }]);
+            if (error) {
+                console.error('❌ خطا در آپدیت اطلاعات بازی:', error);
+                return { success: false, error };
+            }
             
-            return { data, error };
+            return { success: true, error: null };
+            
         } catch (error) {
-            console.error('Error adding transaction:', error);
-            return { data: null, error };
+            console.error('❌ خطا در updateGameData:', error);
+            return { success: false, error };
         }
     },
     
     // دریافت تراکنش‌ها
-    async getTransactions(userId, limit = 10) {
+    async getTransactions(userId, limit = 15) {
         try {
-            const { data, error } = await window.supabaseClient
+            const { data, error } = await supabaseClient
                 .from('transactions')
                 .select('*')
                 .eq('user_id', userId)
                 .order('created_at', { ascending: false })
                 .limit(limit);
             
-            return { data, error };
-        } catch (error) {
-            console.error('Error getting transactions:', error);
-            return { data: null, error };
-        }
-    },
-    
-    // دریافت لیدربرد
-    async getLeaderboard(timeframe = 'daily', limit = 20) {
-        try {
-            let orderBy = 'today_earnings';
-            if (timeframe === 'weekly' || timeframe === 'monthly') {
-                orderBy = 'total_mined';
+            if (error) {
+                console.error('❌ خطا در دریافت تراکنش‌ها:', error);
+                return { data: null, error };
             }
             
-            const { data, error } = await window.supabaseClient
-                .from('game_data')
-                .select(`
-                    *,
-                    users!inner(full_name, email, register_date, invite_code)
-                `)
-                .order(orderBy, { ascending: false })
-                .limit(limit);
+            return { data, error: null };
             
-            return { data, error };
         } catch (error) {
-            console.error('Error getting leaderboard:', error);
+            console.error('❌ خطا در getTransactions:', error);
             return { data: null, error };
         }
     },
     
-    // دریافت تمام کاربران (برای ادمین)
-    async getAllUsers(limit = 100) {
+    // افزودن تراکنش
+    async addTransaction(userId, description, amount, type) {
         try {
-            const { data, error } = await window.supabaseClient
-                .from('users')
-                .select(`
-                    *,
-                    game_data!left(sod_balance, usdt_balance, user_level, total_mined, today_earnings)
-                `)
-                .order('created_at', { ascending: false })
-                .limit(limit);
+            const transaction = {
+                user_id: userId,
+                description: description,
+                amount: amount,
+                type: type,
+                created_at: new Date().toISOString()
+            };
             
-            return { data, error };
+            const { error } = await supabaseClient
+                .from('transactions')
+                .insert([transaction]);
+            
+            if (error) {
+                console.error('❌ خطا در ثبت تراکنش:', error);
+                return { success: false, error };
+            }
+            
+            return { success: true, error: null };
+            
         } catch (error) {
-            console.error('Error getting all users:', error);
-            return { data: null, error };
-        }
-    },
-    
-    // آپدیت کاربر (برای ادمین)
-    async updateUser(userId, updates) {
-        try {
-            const { data, error } = await window.supabaseClient
-                .from('users')
-                .update(updates)
-                .eq('id', userId)
-                .select()
-                .single();
-            
-            return { data, error };
-        } catch (error) {
-            console.error('Error updating user:', error);
-            return { data: null, error };
-        }
-    },
-    
-    // تست اتصال
-    async testConnection() {
-        try {
-            const { data, error } = await window.supabaseClient
-                .from('users')
-                .select('count')
-                .limit(1);
-            
-            if (error) throw error;
-            
-            console.log('✅ Database connection test passed');
-            return true;
-        } catch (error) {
-            console.error('❌ Database connection test failed:', error);
-            return false;
+            console.error('❌ خطا در addTransaction:', error);
+            return { success: false, error };
         }
     }
 };
 
-// صادر کردن برای استفاده جهانی
+// قرار دادن در window برای دسترسی جهانی
 window.GameDB = GameDB;
-window.SUPABASE_CONFIG = SUPABASE_CONFIG;
 
-console.log('🎮 SODmAX database helpers loaded successfully!');
+console.log('✅ پیکربندی Supabase بارگذاری شد');
