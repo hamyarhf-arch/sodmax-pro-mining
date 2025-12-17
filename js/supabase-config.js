@@ -1,5 +1,6 @@
 // ==================== supabase-config.js ====================
 // فایل پیکربندی Supabase برای SODmAX Pro
+// نسخه اصلاح شده - با تابع initSupabase
 
 console.log('🔧 بارگذاری پیکربندی Supabase...');
 
@@ -7,24 +8,37 @@ console.log('🔧 بارگذاری پیکربندی Supabase...');
 const SUPABASE_URL = 'https://utnqkgbmdjilvbkwjqef.supabase.co';
 const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0bnFrZ2JtZGppbHZia3dqcWVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MDM3ODUsImV4cCI6MjA4MTQ3OTc4NX0.-PA0KAaSuQ-ZAJZLdVNe-AafE5fHf8CA5R4uR3TKGDc';
 
-// ایجاد Supabase Client
+// متغیرهای سراسری
 let supabaseClient = null;
 
-try {
-    if (window.supabase) {
-        supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
-        window.supabaseClient = supabaseClient;
-        console.log('✅ Supabase Client ایجاد شد');
-        
-        // تست اتصال
-        testConnection();
-    } else {
-        console.error('❌ کتابخانه Supabase بارگذاری نشده است');
+// ==================== تابع initialize اصلی ====================
+
+function initSupabase() {
+    console.log('🚀 راه‌اندازی Supabase...');
+    
+    try {
+        if (window.supabase) {
+            supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+            window.supabaseClient = supabaseClient;
+            console.log('✅ Supabase Client ایجاد شد');
+            
+            // ذخیره برای استفاده در آینده
+            window.supabaseInstance = supabaseClient;
+            
+            // تست اتصال
+            testConnection();
+            
+            return supabaseClient;
+        } else {
+            console.error('❌ کتابخانه Supabase بارگذاری نشده است');
+            showFallbackMessage();
+            return null;
+        }
+    } catch (error) {
+        console.error('❌ خطا در ایجاد Supabase Client:', error);
         showFallbackMessage();
+        return null;
     }
-} catch (error) {
-    console.error('❌ خطا در ایجاد Supabase Client:', error);
-    showFallbackMessage();
 }
 
 // ==================== توابع دیتابیس ====================
@@ -321,12 +335,64 @@ const GameDB = {
             console.error('❌ خطا در دریافت آمار سیستم:', error);
             return null;
         }
+    },
+    
+    // دریافت اطلاعات کاربر بر اساس ایمیل
+    async getUserByEmail(email) {
+        try {
+            const { data, error } = await supabaseClient
+                .from('users')
+                .select('*')
+                .eq('email', email)
+                .single();
+            
+            if (error) throw error;
+            return { data, error: null };
+            
+        } catch (error) {
+            console.error('❌ خطا در دریافت کاربر:', error);
+            return { data: null, error };
+        }
+    },
+    
+    // افزایش موجودی SOD
+    async addSODBalance(userId, amount, description = 'افزایش موجودی') {
+        try {
+            // دریافت اطلاعات فعلی
+            const { data: currentData, error: fetchError } = await this.getOrCreateGameData(userId);
+            
+            if (fetchError) throw fetchError;
+            
+            const updates = {
+                sod_balance: (currentData.sod_balance || 0) + amount,
+                total_mined: (currentData.total_mined || 0) + amount,
+                last_active: new Date().toISOString()
+            };
+            
+            const result = await this.updateGameData(userId, updates);
+            
+            if (result.success) {
+                // ثبت تراکنش
+                await this.addTransaction(userId, description, amount, 'deposit');
+            }
+            
+            return result;
+            
+        } catch (error) {
+            console.error('❌ خطا در افزایش موجودی:', error);
+            return { success: false, error };
+        }
     }
 };
 
 // ==================== توابع کمکی ====================
 
 async function testConnection() {
+    if (!supabaseClient) {
+        console.warn('⚠️ Supabase Client ایجاد نشده است');
+        return false;
+    }
+    
     const isConnected = await GameDB.testConnection();
     
     if (!isConnected) {
@@ -401,8 +467,8 @@ const OfflineDB = {
             if (key.startsWith('sodmax_user_')) {
                 try {
                     const data = JSON.parse(localStorage.getItem(key));
-                    if (data && data.email) {
-                        users.push(data);
+                    if (data && data.user && data.user.email) {
+                        users.push(data.user);
                     }
                 } catch (error) {
                     console.warn('⚠️ خطا در خواندن کاربر آفلاین:', key);
@@ -411,16 +477,81 @@ const OfflineDB = {
         }
         
         return users;
+    },
+    
+    // دریافت آمار آفلاین
+    getOfflineStats() {
+        const users = this.getAllUsers();
+        let totalSOD = 0;
+        let totalUSDT = 0;
+        let totalMined = 0;
+        
+        for (let i = 0; i < localStorage.length; i++) {
+            const key = localStorage.key(i);
+            if (key.startsWith('sodmax_user_')) {
+                try {
+                    const data = JSON.parse(localStorage.getItem(key));
+                    if (data && data.game) {
+                        totalSOD += data.game.sod_balance || 0;
+                        totalUSDT += data.game.usdt_balance || 0;
+                        totalMined += data.game.total_mined || 0;
+                    }
+                } catch (error) {
+                    console.warn('⚠️ خطا در خواندن آمار:', key);
+                }
+            }
+        }
+        
+        return {
+            userCount: users.length,
+            totalSOD,
+            totalUSDT,
+            totalMined,
+            averageSOD: users.length > 0 ? totalSOD / users.length : 0,
+            averageMined: users.length > 0 ? totalMined / users.length : 0
+        };
     }
 };
+
+// ==================== توابع عمومی ====================
+
+function formatNumber(num, decimals = 0) {
+    return new Intl.NumberFormat('fa-IR').format(num.toFixed(decimals));
+}
+
+function generateInviteCode() {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    let code = 'INV-';
+    for (let i = 0; i < 8; i++) {
+        code += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return code;
+}
+
+function isAdmin(email) {
+    return email && email.toLowerCase() === 'hamyarhf@gmail.com';
+}
 
 // ==================== قرار دادن در window ====================
 
 window.GameDB = GameDB;
 window.OfflineDB = OfflineDB;
 window.testDBConnection = testConnection;
+window.initSupabase = initSupabase;
+window.formatNumber = formatNumber;
+window.generateInviteCode = generateInviteCode;
+window.isAdmin = isAdmin;
 
-console.log('✅ پیکربندی Supabase بارگذاری شد');
+console.log('✅ پیکربندی Supabase بارگذاری شد - آماده استفاده!');
 
-// تست خودکار اتصال
-setTimeout(testConnection, 2000);
+// تست خودکار اتصال (اختیاری)
+if (window.supabase) {
+    setTimeout(() => {
+        if (!supabaseClient) {
+            console.log('🔄 تست خودکار اتصال...');
+            initSupabase();
+        }
+    }, 3000);
+} else {
+    console.warn('⚠️ Supabase CDN بارگذاری نشده است. لطفاً بررسی کنید.');
+}
