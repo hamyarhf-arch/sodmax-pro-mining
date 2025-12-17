@@ -1,9 +1,6 @@
 <!DOCTYPE html>
 <html lang="fa" dir="rtl">
 <head>
-    <!-- در <head> -->
-<script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
-
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>SODmAX Pro | استخراج حرفه‌ای با پاداش واقعی USDT</title>
@@ -141,9 +138,19 @@
             color: white;
         }
 
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
+        }
+
         .btn-success {
             background: var(--gradient-usdt);
             color: white;
+        }
+
+        .btn-success:hover {
+            transform: translateY(-2px);
+            box-shadow: var(--shadow);
         }
 
         /* کانتینر اصلی */
@@ -240,10 +247,17 @@
             border: 2px solid transparent;
             box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
             transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .miner-core:hover {
+            border-color: var(--primary);
+            transform: scale(1.02);
         }
 
         .miner-core:active {
             transform: scale(0.95);
+            box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
         }
 
         .miner-info h2 {
@@ -269,12 +283,35 @@
             border-radius: var(--radius-lg);
             padding: 25px;
             border: 1px solid var(--glass-border);
+            transition: transform 0.3s ease;
+        }
+
+        .card:hover {
+            transform: translateY(-5px);
+            border-color: var(--primary);
         }
 
         .card h3 {
             font-size: 18px;
             margin-bottom: 20px;
             color: var(--secondary);
+        }
+
+        /* نوار پیشرفت */
+        .progress-bar {
+            background: var(--glass);
+            height: 12px;
+            border-radius: 6px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: var(--gradient-usdt);
+            width: 0%;
+            transition: width 0.3s ease;
+            border-radius: 6px;
         }
 
         /* نوتیفیکیشن */
@@ -310,6 +347,55 @@
             }
         }
 
+        /* انیمیشن کلیک */
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+
+        .bounce {
+            animation: bounce 0.3s ease;
+        }
+
+        /* لینک‌های ناوبری */
+        .nav-links {
+            display: flex;
+            gap: 15px;
+            margin-top: 20px;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .nav-link {
+            color: var(--text-secondary);
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: var(--radius);
+            transition: all 0.3s ease;
+            background: var(--glass);
+            border: 1px solid var(--glass-border);
+        }
+
+        .nav-link:hover {
+            color: white;
+            border-color: var(--primary);
+            background: rgba(0, 102, 255, 0.1);
+        }
+
+        /* استایل برای دکمه‌های کوچک */
+        .btn-small {
+            padding: 8px 16px;
+            font-size: 14px;
+            width: auto;
+        }
+
+        /* استایل برای دکمه‌های غیرفعال */
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
         /* رزپانسیو */
         @media (max-width: 768px) {
             .header {
@@ -331,6 +417,30 @@
                 width: 200px;
                 height: 200px;
             }
+            
+            .cards-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .notification {
+                left: 20px;
+                right: 20px;
+                max-width: none;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .auth-container {
+                padding: 30px 20px;
+            }
+            
+            .auth-title {
+                font-size: 24px;
+            }
+            
+            .btn {
+                padding: 12px;
+            }
         }
     </style>
 </head>
@@ -346,12 +456,12 @@
 
             <div class="form-group">
                 <label class="form-label">ایمیل</label>
-                <input type="email" class="form-input" id="authEmail" placeholder="example@gmail.com" value="">
+                <input type="email" class="form-input" id="authEmail" placeholder="example@gmail.com" value="test@example.com">
             </div>
 
             <div class="form-group">
                 <label class="form-label">رمز عبور</label>
-                <input type="password" class="form-input" id="authPassword" placeholder="رمز عبور" value="">
+                <input type="password" class="form-input" id="authPassword" placeholder="رمز عبور" value="123456">
             </div>
 
             <button class="btn btn-primary" onclick="loginUser()">
@@ -363,6 +473,11 @@
             </button>
 
             <div id="authMessage" style="text-align: center; margin-top: 20px; color: var(--text-secondary); font-size: 14px; display: none;"></div>
+
+            <!-- پیام حالت آفلاین -->
+            <div id="offlineMessage" style="display: none; background: rgba(255, 107, 53, 0.1); border: 1px solid rgba(255, 107, 53, 0.3); border-radius: 8px; padding: 10px 15px; margin-top: 15px; font-size: 12px; color: #FF6B35;">
+                ⚠️ حالت آفلاین فعال - داده‌ها در مرورگر ذخیره می‌شوند
+            </div>
         </div>
     </div>
 
@@ -389,7 +504,12 @@
                     <div class="wallet-amount" id="usdtBalance">۰</div>
                 </div>
 
-                <button class="btn btn-primary" onclick="logoutUser()" style="width: auto; padding: 10px 20px;">
+                <div class="wallet">
+                    <span>سطح کاربر</span>
+                    <div class="wallet-amount" id="userLevel">۱</div>
+                </div>
+
+                <button class="btn btn-primary btn-small" onclick="logoutUser()">
                     <i class="fas fa-sign-out-alt"></i> خروج
                 </button>
             </div>
@@ -404,19 +524,38 @@
             
             <div class="miner-core" id="minerCore">
                 <div style="text-align: center;">
-                    <div style="font-size: 40px; margin-bottom: 10px;">⚡</div>
+                    <div style="font-size: 40px; margin-bottom: 10px;" id="minerIcon">⚡</div>
                     <div style="font-size: 24px; font-weight: 900;" id="clickReward">+۱۰ SOD</div>
                     <div style="color: var(--text-secondary); margin-top: 5px;">کلیک کنید</div>
                 </div>
             </div>
 
             <div style="display: flex; gap: 10px; justify-content: center; margin-top: 20px;">
-                <button class="btn btn-primary" onclick="buySODPlan(1)" style="width: auto;">
+                <button class="btn btn-primary btn-small" onclick="buySODPlan(1)">
                     <i class="fas fa-shopping-cart"></i> خرید SOD
                 </button>
-                <button class="btn btn-success" onclick="claimUSDT()" style="width: auto;">
+                <button class="btn btn-success btn-small" onclick="claimUSDT()" id="claimBtn">
                     <i class="fas fa-gift"></i> دریافت USDT
                 </button>
+                <button class="btn btn-small" style="background: transparent; border: 2px solid var(--glass-border);" onclick="openDashboard()">
+                    <i class="fas fa-chart-line"></i> آمار
+                </button>
+            </div>
+
+            <!-- ناوبری -->
+            <div class="nav-links">
+                <a href="dashboard.html" class="nav-link" target="_blank">
+                    <i class="fas fa-tachometer-alt"></i> داشبورد
+                </a>
+                <a href="leaderboard.html" class="nav-link" target="_blank">
+                    <i class="fas fa-trophy"></i> لیدربرد
+                </a>
+                <a href="missions.html" class="nav-link" target="_blank">
+                    <i class="fas fa-tasks"></i> مأموریت‌ها
+                </a>
+                <a href="admin.html" class="nav-link" target="_blank" id="adminLink" style="display: none;">
+                    <i class="fas fa-crown"></i> مدیریت
+                </a>
             </div>
         </section>
 
@@ -426,37 +565,74 @@
                 <h3>📊 آمار امروز</h3>
                 <div style="font-size: 32px; font-weight: 900; margin: 15px 0;" id="todayEarnings">۰ SOD</div>
                 <div style="color: var(--text-secondary);">درآمد امروز</div>
+                <button class="btn btn-small" style="margin-top: 15px; background: var(--glass);" onclick="resetDailyEarnings()">
+                    <i class="fas fa-redo"></i> ریست روزانه
+                </button>
             </div>
 
             <div class="card">
                 <h3>⚡ قدرت استخراج</h3>
                 <div style="font-size: 32px; font-weight: 900; margin: 15px 0;" id="miningPower">۱۰x</div>
-                <div style="color: var(--text-secondary;">SOD در هر کلیک</div>
+                <div style="color: var(--text-secondary);">SOD در هر کلیک</div>
+                <button class="btn btn-primary btn-small" style="margin-top: 15px;" onclick="upgradeMining()">
+                    <i class="fas fa-arrow-up"></i> ارتقاء قدرت
+                </button>
             </div>
 
             <div class="card">
                 <h3>💎 پاداش USDT</h3>
                 <div style="font-size: 32px; font-weight: 900; margin: 15px 0;" id="availableUSDT">۰ USDT</div>
                 <div style="color: var(--text-secondary);">قابل دریافت</div>
+                <button class="btn btn-success btn-small" style="margin-top: 15px;" onclick="claimUSDT()">
+                    <i class="fas fa-download"></i> دریافت
+                </button>
             </div>
         </div>
 
         <!-- نوار پیشرفت USDT -->
         <div class="card" style="margin: 40px 0;">
             <h3>🎯 پیشرفت تا پاداش بعدی</h3>
-            <div style="background: var(--glass); height: 12px; border-radius: 6px; margin: 20px 0; overflow: hidden;">
-                <div id="progressFill" style="height: 100%; background: var(--gradient-usdt); width: 0%; transition: width 0.3s ease;"></div>
+            <div class="progress-bar">
+                <div class="progress-fill" id="progressFill"></div>
             </div>
             <div style="display: flex; justify-content: space-between; color: var(--text-secondary); font-size: 14px;">
                 <span id="progressText">۰ / ۱,۰۰۰,۰۰۰ SOD</span>
-                <span>۰.۰۱ USDT</span>
+                <span id="nextReward">۰.۰۰ USDT</span>
+            </div>
+            <div style="text-align: center; margin-top: 15px;">
+                <button class="btn btn-small" onclick="showHelp()" style="background: transparent; color: var(--text-secondary);">
+                    <i class="fas fa-question-circle"></i> راهنمایی
+                </button>
+            </div>
+        </div>
+
+        <!-- اطلاعات کاربر -->
+        <div class="card" style="margin: 40px 0;">
+            <h3>👤 اطلاعات کاربری</h3>
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-top: 20px;">
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 14px;">ایمیل</div>
+                    <div style="font-weight: bold; margin-top: 5px;" id="userEmail">-</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 14px;">تاریخ عضویت</div>
+                    <div style="font-weight: bold; margin-top: 5px;" id="registerDate">-</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 14px;">کد دعوت</div>
+                    <div style="font-weight: bold; margin-top: 5px;" id="inviteCode">-</div>
+                </div>
+                <div>
+                    <div style="color: var(--text-secondary); font-size: 14px;">مجموع استخراج</div>
+                    <div style="font-weight: bold; margin-top: 5px;" id="totalMined">۰ SOD</div>
+                </div>
             </div>
         </div>
     </div>
 
     <!-- نوتیفیکیشن -->
     <div class="notification" id="notification">
-        <div style="font-size: 24px;">✅</div>
+        <div style="font-size: 24px;" id="notificationIcon">✅</div>
         <div>
             <div style="font-weight: bold;" id="notificationTitle">موفقیت</div>
             <div style="color: var(--text-secondary); font-size: 14px;" id="notificationMessage">عملیات انجام شد</div>
@@ -464,14 +640,24 @@
     </div>
 
     <!-- اسکریپت‌ها -->
-    <script src="https://unpkg.com/@supabase/supabase-js@2"></script>
+    <!-- ابتدا CDN Supabase -->
+    <script src="https://unpkg.com/@supabase/supabase-js@2.39.0/dist/umd/supabase.min.js"></script>
+    
+    <!-- سپس فایل پیکربندی -->
+    <script src="supabase-config.js"></script>
+    
     <script>
         // ==================== تنظیمات ====================
         const EXCHANGE_RATE = 1000000; // 1M SOD = 0.01 USDT
         const ADMIN_EMAIL = 'hamyarhf@gmail.com';
+        const MINING_BASE_POWER = 10;
         
         // ==================== متغیرهای سراسری ====================
-        let gameInstance = null;
+        let currentUser = null;
+        let userData = null;
+        let gameData = null;
+        let isOfflineMode = false;
+        let miningPower = MINING_BASE_POWER;
         
         // ==================== توابع UI ====================
         
@@ -479,7 +665,7 @@
             const notification = document.getElementById('notification');
             const titleEl = document.getElementById('notificationTitle');
             const messageEl = document.getElementById('notificationMessage');
-            const icon = notification.querySelector('div');
+            const icon = document.getElementById('notificationIcon');
             
             titleEl.textContent = title;
             messageEl.textContent = message;
@@ -493,6 +679,16 @@
             };
             
             icon.textContent = icons[type] || '✅';
+            
+            // رنگ پس‌زمینه بر اساس نوع
+            const colors = {
+                success: '#00C853',
+                error: '#FF5252',
+                warning: '#FFB300',
+                info: '#2196F3'
+            };
+            
+            notification.style.borderLeft = `4px solid ${colors[type] || colors.success}`;
             
             notification.classList.add('show');
             
@@ -511,6 +707,109 @@
             document.getElementById('mainContainer').style.display = 'none';
         }
         
+        function updateUI() {
+            if (!gameData) return;
+            
+            // فرمت اعداد فارسی
+            const formatNumber = (num, decimals = 0) => {
+                return new Intl.NumberFormat('fa-IR').format(num.toFixed(decimals));
+            };
+            
+            // به روزرسانی موجودی‌ها
+            document.getElementById('sodBalance').textContent = formatNumber(gameData.sod_balance || 0);
+            document.getElementById('usdtBalance').textContent = formatNumber(gameData.usdt_balance || 0, 2);
+            document.getElementById('userLevel').textContent = gameData.user_level || 1;
+            
+            // آمار امروز
+            document.getElementById('todayEarnings').textContent = formatNumber(gameData.today_earnings || 0) + ' SOD';
+            
+            // قدرت استخراج
+            miningPower = gameData.mining_power || MINING_BASE_POWER;
+            document.getElementById('miningPower').textContent = miningPower + 'x';
+            document.getElementById('clickReward').textContent = '+' + formatNumber(miningPower) + ' SOD';
+            
+            // محاسبه USDT قابل دریافت
+            const availableUSDT = ((gameData.usdt_progress || 0) / EXCHANGE_RATE) * 0.01;
+            document.getElementById('availableUSDT').textContent = formatNumber(availableUSDT, 4) + ' USDT';
+            
+            // به روزرسانی نوار پیشرفت
+            const progressPercent = ((gameData.usdt_progress || 0) / EXCHANGE_RATE) * 100;
+            document.getElementById('progressFill').style.width = Math.min(progressPercent, 100) + '%';
+            document.getElementById('progressText').textContent = 
+                formatNumber(gameData.usdt_progress || 0) + ' / ' + formatNumber(EXCHANGE_RATE) + ' SOD';
+            
+            // پاداش بعدی
+            const nextReward = Math.floor(((gameData.usdt_progress || 0) + 1) / EXCHANGE_RATE) * 0.01;
+            document.getElementById('nextReward').textContent = formatNumber(nextReward, 2) + ' USDT';
+            
+            // اطلاعات کاربر
+            if (userData) {
+                document.getElementById('userEmail').textContent = userData.email || '-';
+                document.getElementById('registerDate').textContent = userData.register_date || '-';
+                document.getElementById('inviteCode').textContent = userData.invite_code || '-';
+                document.getElementById('totalMined').textContent = formatNumber(gameData.total_mined || 0) + ' SOD';
+                
+                // نمایش لینک ادمین
+                const adminLink = document.getElementById('adminLink');
+                if (userData.email && userData.email.toLowerCase() === ADMIN_EMAIL) {
+                    adminLink.style.display = 'block';
+                }
+            }
+            
+            // فعال/غیرفعال کردن دکمه دریافت
+            const claimBtn = document.getElementById('claimBtn');
+            if (availableUSDT < 0.01) {
+                claimBtn.disabled = true;
+                claimBtn.innerHTML = '<i class="fas fa-gift"></i> حداقل ۰.۰۱ USDT';
+            } else {
+                claimBtn.disabled = false;
+                claimBtn.innerHTML = `<i class="fas fa-gift"></i> دریافت ${formatNumber(availableUSDT, 2)} USDT`;
+            }
+        }
+        
+        function animateMinerClick() {
+            const minerIcon = document.getElementById('minerIcon');
+            const clickReward = document.getElementById('clickReward');
+            
+            // انیمیشن آیکون
+            minerIcon.style.transform = 'scale(1.2)';
+            setTimeout(() => {
+                minerIcon.style.transform = 'scale(1)';
+            }, 200);
+            
+            // انیمیشن متن پاداش
+            clickReward.classList.remove('bounce');
+            setTimeout(() => {
+                clickReward.classList.add('bounce');
+            }, 10);
+            
+            // صدای کلیک
+            playClickSound();
+        }
+        
+        function playClickSound() {
+            try {
+                // ایجاد صدای کلیک ساده
+                const audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const oscillator = audioContext.createOscillator();
+                const gainNode = audioContext.createGain();
+                
+                oscillator.connect(gainNode);
+                gainNode.connect(audioContext.destination);
+                
+                oscillator.frequency.value = 800;
+                oscillator.type = 'sine';
+                
+                gainNode.gain.setValueAtTime(0.3, audioContext.currentTime);
+                gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1);
+                
+                oscillator.start(audioContext.currentTime);
+                oscillator.stop(audioContext.currentTime + 0.1);
+            } catch (e) {
+                console.log('صدا پشتیبانی نمی‌شود');
+            }
+        }
+        
         // ==================== توابع احراز هویت ====================
         
         async function loginUser() {
@@ -525,10 +824,15 @@
             try {
                 showNotification('در حال ورود...', 'لطفاً صبر کنید', 'info');
                 
+                // بررسی وجود supabaseClient
                 if (!window.supabaseClient) {
-                    throw new Error('Supabase بارگذاری نشده است');
+                    // اگر supabaseClient وجود ندارد، اول initialize کن
+                    if (!initSupabase()) {
+                        throw new Error('خطا در راه‌اندازی Supabase');
+                    }
                 }
                 
+                // ورود با ایمیل و رمز
                 const { data, error } = await window.supabaseClient.auth.signInWithPassword({
                     email: email,
                     password: password
@@ -536,17 +840,35 @@
                 
                 if (error) throw error;
                 
-                showNotification('خوش آمدید', 'با موفقیت وارد شدید!');
-                showMainPage();
+                currentUser = data.user;
+                showNotification('خوش آمدید', `با موفقیت وارد شدید ${email}!`, 'success');
                 
-                // راه‌اندازی بازی
-                setTimeout(() => {
-                    initGame();
-                }, 1000);
+                // بارگذاری اطلاعات کاربر
+                await loadUserData(currentUser);
+                showMainPage();
                 
             } catch (error) {
                 console.error('خطا در ورود:', error);
-                showNotification('خطا در ورود', error.message || 'مشکلی پیش آمد', 'error');
+                
+                // حالت آفلاین - برای تست
+                if (email && password) {
+                    showNotification('حالت آفلاین', 'با اطلاعات تست وارد شدید', 'warning');
+                    
+                    // ایجاد کاربر آفلاین
+                    currentUser = {
+                        id: 'offline_' + Date.now(),
+                        email: email,
+                        user_metadata: {
+                            full_name: email.split('@')[0]
+                        }
+                    };
+                    
+                    await loadUserData(currentUser);
+                    showMainPage();
+                    showOfflineMode();
+                } else {
+                    showNotification('خطا در ورود', error.message || 'مشکلی پیش آمد', 'error');
+                }
             }
         }
         
@@ -567,20 +889,32 @@
             try {
                 showNotification('در حال ثبت‌نام...', 'لطفاً صبر کنید', 'info');
                 
+                // بررسی وجود supabaseClient
+                if (!window.supabaseClient) {
+                    if (!initSupabase()) {
+                        throw new Error('خطا در راه‌اندازی Supabase');
+                    }
+                }
+                
+                // ثبت‌نام کاربر جدید
                 const { data, error } = await window.supabaseClient.auth.signUp({
                     email: email,
                     password: password,
                     options: {
                         data: {
                             full_name: email.split('@')[0],
-                            register_date: new Date().toLocaleDateString('fa-IR')
+                            register_date: new Date().toLocaleDateString('fa-IR'),
+                            invite_code: window.generateInviteCode ? window.generateInviteCode() : 'INV-' + Math.random().toString(36).substr(2, 8).toUpperCase()
                         }
                     }
                 });
                 
                 if (error) throw error;
                 
-                showNotification('ثبت‌نام موفق', 'حساب شما ایجاد شد! اکنون وارد شوید.');
+                showNotification('ثبت‌نام موفق', 'حساب شما ایجاد شد! اکنون وارد شوید.', 'success');
+                
+                // پاک کردن فیلد رمز عبور
+                document.getElementById('authPassword').value = '';
                 
             } catch (error) {
                 console.error('خطا در ثبت‌نام:', error);
@@ -590,54 +924,430 @@
         
         async function logoutUser() {
             try {
-                await window.supabaseClient.auth.signOut();
-                showNotification('خروج', 'با موفقیت خارج شدید.');
+                if (window.supabaseClient) {
+                    await window.supabaseClient.auth.signOut();
+                }
+                currentUser = null;
+                userData = null;
+                gameData = null;
+                showNotification('خروج', 'با موفقیت خارج شدید.', 'info');
                 showAuthPage();
             } catch (error) {
                 console.error('خطا در خروج:', error);
             }
         }
         
-        // ==================== راه‌اندازی ====================
+        // ==================== توابع بازی ====================
         
-        async function initGame() {
+        async function loadUserData(user) {
+            if (!user) return;
+            
             try {
-                // بررسی session فعلی
-                const { data: { session } } = await window.supabaseClient.auth.getSession();
+                console.log('بارگذاری اطلاعات کاربر:', user.email);
+                isOfflineMode = false;
                 
-                if (session) {
-                    showMainPage();
-                    loadUserData(session.user);
-                } else {
-                    showAuthPage();
+                // اگر supabaseClient وجود ندارد، از localStorage استفاده کن
+                if (!window.supabaseClient || !window.GameDB) {
+                    loadOfflineData(user);
+                    return;
                 }
+                
+                // دریافت یا ایجاد کاربر
+                const { data: userDataResult, error: userError } = await window.GameDB.getOrCreateUser(user.id, user.email);
+                
+                if (userError) {
+                    console.warn('خطا در دریافت کاربر:', userError);
+                    loadOfflineData(user);
+                    return;
+                }
+                
+                userData = userDataResult;
+                
+                // دریافت یا ایجاد اطلاعات بازی
+                const { data: gameDataResult, error: gameError } = await window.GameDB.getOrCreateGameData(user.id);
+                
+                if (gameError) {
+                    console.warn('خطا در دریافت اطلاعات بازی:', gameError);
+                    loadOfflineData(user);
+                    return;
+                }
+                
+                gameData = gameDataResult;
+                
+                // ذخیره اطلاعات در localStorage به عنوان پشتیبان
+                localStorage.setItem(`sodmax_user_${user.id}`, JSON.stringify({
+                    user: userData,
+                    game: gameData,
+                    last_sync: new Date().toISOString()
+                }));
+                
+                // نمایش اطلاعات در UI
+                updateUI();
+                
+                // بررسی boost فعال
+                checkBoostStatus();
+                
             } catch (error) {
-                console.error('خطا در راه‌اندازی:', error);
-                showAuthPage();
+                console.error('خطا در بارگذاری اطلاعات:', error);
+                loadOfflineData(user);
             }
         }
         
-        // ==================== بارگذاری اولیه ====================
-        
-        document.addEventListener('DOMContentLoaded', function() {
-            // ابتدا Supabase را بارگذاری کن
-            initSupabase();
+        function loadOfflineData(user) {
+            console.log('استفاده از داده‌های آفلاین');
+            isOfflineMode = true;
             
-            // بررسی auto-login
-            setTimeout(() => {
-                initGame();
-            }, 1000);
+            const savedData = localStorage.getItem(`sodmax_user_${user.id}`);
+            
+            if (savedData) {
+                try {
+                    const data = JSON.parse(savedData);
+                    userData = data.user;
+                    gameData = data.game;
+                    updateUI();
+                    showOfflineMode();
+                    showNotification('اطلاع', 'در حالت آفلاین هستید', 'info');
+                } catch (e) {
+                    createOfflineData(user);
+                }
+            } else {
+                createOfflineData(user);
+            }
+        }
+        
+        function createOfflineData(user) {
+            userData = {
+                id: user.id,
+                email: user.email,
+                full_name: user.email.split('@')[0],
+                register_date: new Date().toLocaleDateString('fa-IR'),
+                invite_code: 'OFFLINE-' + Math.random().toString(36).substr(2, 6).toUpperCase()
+            };
+            
+            gameData = {
+                user_id: user.id,
+                sod_balance: 1000000,
+                usdt_balance: 0,
+                today_earnings: 0,
+                mining_power: MINING_BASE_POWER,
+                user_level: 1,
+                usdt_progress: 0,
+                total_mined: 1000000,
+                boost_active: false,
+                boost_end_time: null,
+                last_active: new Date().toISOString()
+            };
+            
+            localStorage.setItem(`sodmax_user_${user.id}`, JSON.stringify({
+                user: userData,
+                game: gameData,
+                is_offline: true,
+                created_at: new Date().toISOString()
+            }));
+            
+            updateUI();
+            showOfflineMode();
+            showNotification('اطلاع', 'داده‌های آفلاین ایجاد شدند', 'info');
+        }
+        
+        function showOfflineMode() {
+            document.getElementById('offlineMessage').style.display = 'block';
+        }
+        
+        async function mineSOD() {
+            if (!currentUser) {
+                showNotification('خطا', 'لطفاً ابتدا وارد شوید', 'error');
+                return;
+            }
+            
+            if (!gameData) {
+                showNotification('خطا', 'اطلاعات بازی بارگذاری نشده', 'error');
+                return;
+            }
+            
+            // انیمیشن کلیک
+            animateMinerClick();
+            
+            const sodReward = miningPower;
+            const currentTime = new Date().toISOString();
+            
+            // به روزرسانی داده‌ها
+            gameData.sod_balance = (gameData.sod_balance || 0) + sodReward;
+            gameData.today_earnings = (gameData.today_earnings || 0) + sodReward;
+            gameData.usdt_progress = (gameData.usdt_progress || 0) + sodReward;
+            gameData.total_mined = (gameData.total_mined || 0) + sodReward;
+            gameData.last_active = currentTime;
+            
+            if (window.supabaseClient && window.GameDB && !isOfflineMode) {
+                try {
+                    const updates = {
+                        sod_balance: gameData.sod_balance,
+                        today_earnings: gameData.today_earnings,
+                        usdt_progress: gameData.usdt_progress,
+                        total_mined: gameData.total_mined,
+                        last_active: currentTime
+                    };
+                    
+                    await window.GameDB.updateGameData(currentUser.id, updates);
+                    
+                    // ثبت تراکنش
+                    await window.GameDB.addTransaction(
+                        currentUser.id,
+                        'استخراج SOD',
+                        sodReward,
+                        'mining'
+                    );
+                    
+                } catch (error) {
+                    console.error('خطا در ذخیره آنلاین:', error);
+                    isOfflineMode = true;
+                }
+            }
+            
+            // ذخیره آفلاین
+            localStorage.setItem(`sodmax_user_${currentUser.id}`, JSON.stringify({
+                user: userData,
+                game: gameData,
+                last_updated: currentTime,
+                is_offline: isOfflineMode
+            }));
+            
+            // به روزرسانی UI
+            updateUI();
+            
+            // چک کردن پاداش USDT
+            checkUSDTClaim();
+        }
+        
+        async function claimUSDT() {
+            if (!currentUser || !gameData) {
+                showNotification('خطا', 'لطفاً ابتدا وارد شوید', 'error');
+                return;
+            }
+            
+            const availableUSDT = ((gameData.usdt_progress || 0) / EXCHANGE_RATE) * 0.01;
+            
+            if (availableUSDT < 0.01) {
+                showNotification('خطا', 'حداقل ۱,۰۰۰,۰۰۰ SOD برای دریافت ۰.۰۱ USDT نیاز است', 'error');
+                return;
+            }
+            
+            try {
+                showNotification('در حال پردازش...', 'لطفاً صبر کنید', 'info');
+                
+                if (window.supabaseClient && window.GameDB && !isOfflineMode) {
+                    const usdtEarned = Math.floor((gameData.usdt_progress || 0) / EXCHANGE_RATE) * 0.01;
+                    const remainingProgress = (gameData.usdt_progress || 0) % EXCHANGE_RATE;
+                    
+                    const updates = {
+                        usdt_balance: (gameData.usdt_balance || 0) + usdtEarned,
+                        usdt_progress: remainingProgress,
+                        last_active: new Date().toISOString()
+                    };
+                    
+                    await window.GameDB.updateGameData(currentUser.id, updates);
+                    
+                    // ثبت تراکنش
+                    await window.GameDB.addTransaction(
+                        currentUser.id,
+                        'دریافت USDT',
+                        usdtEarned,
+                        'reward'
+                    );
+                    
+                    gameData.usdt_balance = updates.usdt_balance;
+                    gameData.usdt_progress = updates.usdt_progress;
+                    
+                } else {
+                    // حالت آفلاین
+                    const usdtEarned = Math.floor((gameData.usdt_progress || 0) / EXCHANGE_RATE) * 0.01;
+                    const remainingProgress = (gameData.usdt_progress || 0) % EXCHANGE_RATE;
+                    
+                    gameData.usdt_balance = (gameData.usdt_balance || 0) + usdtEarned;
+                    gameData.usdt_progress = remainingProgress;
+                    gameData.last_active = new Date().toISOString();
+                    
+                    localStorage.setItem(`sodmax_user_${currentUser.id}`, JSON.stringify({
+                        user: userData,
+                        game: gameData,
+                        last_updated: new Date().toISOString(),
+                        is_offline: true
+                    }));
+                }
+                
+                updateUI();
+                showNotification('موفقیت', formatNumber(usdtEarned, 2) + ' USDT دریافت شد!', 'success');
+                
+            } catch (error) {
+                console.error('خطا در دریافت USDT:', error);
+                showNotification('خطا', 'مشکلی در دریافت USDT پیش آمد', 'error');
+            }
+        }
+        
+        function checkUSDTClaim() {
+            const availableUSDT = ((gameData.usdt_progress || 0) / EXCHANGE_RATE) * 0.01;
+            
+            if (availableUSDT >= 0.01) {
+                showNotification('آماده دریافت!', formatNumber(availableUSDT, 2) + ' USDT آماده دریافت است', 'success');
+            }
+        }
+        
+        function checkBoostStatus() {
+            if (!gameData || !gameData.boost_active || !gameData.boost_end_time) return;
+            
+            const now = new Date();
+            const boostEnd = new Date(gameData.boost_end_time);
+            
+            if (now > boostEnd) {
+                // بوست تمام شده
+                gameData.boost_active = false;
+                gameData.mining_power = MINING_BASE_POWER;
+                miningPower = MINING_BASE_POWER;
+                
+                if (window.supabaseClient && window.GameDB && !isOfflineMode) {
+                    window.GameDB.updateGameData(currentUser.id, {
+                        boost_active: false,
+                        mining_power: MINING_BASE_POWER
+                    });
+                }
+                
+                showNotification('اتمام بوست', 'زمان بوست شما به پایان رسید', 'warning');
+                updateUI();
+            } else {
+                // بوست فعال
+                miningPower = gameData.mining_power || MINING_BASE_POWER;
+                updateUI();
+            }
+        }
+        
+        // ==================== توابع کمکی ====================
+        
+        function formatNumber(num, decimals = 0) {
+            return new Intl.NumberFormat('fa-IR').format(num.toFixed(decimals));
+        }
+        
+        function buySODPlan(planId) {
+            showNotification('به زودی...', 'این قابلیت در حال توسعه است', 'info');
+        }
+        
+        function upgradeMining() {
+            showNotification('به زودی...', 'سیستم ارتقاء در حال توسعه است', 'info');
+        }
+        
+        function resetDailyEarnings() {
+            if (!currentUser || !gameData) return;
+            
+            gameData.today_earnings = 0;
+            
+            if (window.supabaseClient && window.GameDB && !isOfflineMode) {
+                window.GameDB.updateGameData(currentUser.id, {
+                    today_earnings: 0
+                });
+            }
+            
+            localStorage.setItem(`sodmax_user_${currentUser.id}`, JSON.stringify({
+                user: userData,
+                game: gameData,
+                last_updated: new Date().toISOString(),
+                is_offline: isOfflineMode
+            }));
+            
+            updateUI();
+            showNotification('ریست شد', 'آمار امروز ریست شد', 'success');
+        }
+        
+        function openDashboard() {
+            window.open('dashboard.html', '_blank');
+        }
+        
+        function showHelp() {
+            showNotification('راهنمایی', 'هر ۱,۰۰۰,۰۰۰ SOD = ۰.۰۱ USDT', 'info');
+        }
+        
+        // ==================== راه‌اندازی اولیه ====================
+        
+        document.addEventListener('DOMContentLoaded', async function() {
+            console.log('📱 SODmAX Pro بارگذاری شد');
             
             // تنظیم کلیک ماینر
             document.getElementById('minerCore').addEventListener('click', function() {
                 mineSOD();
             });
+            
+            // راه‌اندازی Supabase
+            if (window.supabase) {
+                initSupabase();
+                
+                // بررسی session موجود
+                try {
+                    if (window.supabaseClient) {
+                        const { data: { session } } = await window.supabaseClient.auth.getSession();
+                        
+                        if (session) {
+                            currentUser = session.user;
+                            showMainPage();
+                            await loadUserData(currentUser);
+                            
+                            // چک خودکار هر 30 ثانیه
+                            setInterval(checkBoostStatus, 30000);
+                            
+                        } else {
+                            showAuthPage();
+                        }
+                    } else {
+                        showAuthPage();
+                    }
+                } catch (error) {
+                    console.error('خطا در بررسی session:', error);
+                    showAuthPage();
+                }
+            } else {
+                console.error('Supabase CDN بارگذاری نشده است');
+                showAuthPage();
+                showNotification('خطا', 'اتصال اینترنت خود را بررسی کنید', 'error');
+            }
+            
+            // جلوگیری از کلیک راست
+            document.addEventListener('contextmenu', function(e) {
+                e.preventDefault();
+            });
+            
+            // جلوگیری از کشیدن عکس
+            document.addEventListener('dragstart', function(e) {
+                if (e.target.tagName === 'IMG') {
+                    e.preventDefault();
+                }
+            });
+            
+            // کلیدهای میانبر
+            document.addEventListener('keydown', function(e) {
+                // Space برای استخراج
+                if (e.code === 'Space' && document.getElementById('mainContainer').style.display === 'block') {
+                    e.preventDefault();
+                    mineSOD();
+                }
+                
+                // Escape برای خروج
+                if (e.code === 'Escape') {
+                    if (document.getElementById('mainContainer').style.display === 'block') {
+                        logoutUser();
+                    }
+                }
+            });
+            
+            // آپدیت زمان‌سنج
+            setInterval(function() {
+                if (gameData && gameData.boost_active && gameData.boost_end_time) {
+                    const now = new Date();
+                    const end = new Date(gameData.boost_end_time);
+                    const remaining = Math.max(0, end - now);
+                    
+                    if (remaining === 0) {
+                        checkBoostStatus();
+                    }
+                }
+            }, 1000);
         });
-        
-        // باقی توابع در ادامه...
     </script>
 </body>
 </html>
-
-
-
