@@ -5,7 +5,7 @@ console.log('🔧 بارگذاری پیکربندی Supabase...');
 
 // تنظیمات Supabase
 const SUPABASE_URL = 'https://utnqkgbmdjilvbkwjqef.supabase.co';
-const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0bnFrZ2JtZGppbHZia3dqcWVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUyMzIwMDksImV4cCI6MjA1MDgwODAwOX0.E0rR6NfU4C_v6DSLPdPieC4uQQa6K4T0w8Jj3K0Y6eE';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InV0bnFrZ2JtZGppbHZia3dqcWVmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU5MDM3ODUsImV4cCI6MjA4MTQ3OTc4NX0.-PA0KAaSuQ-ZAJZLdVNe-AafE5fHf8CA5R4uR3TKGDc';
 
 // ایجاد Supabase Client
 let supabaseClient = null;
